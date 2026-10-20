@@ -1,6 +1,8 @@
 
 #include <raylib.h>
 
+#include "aerial/rendering/drone_renderer.hpp"
+
 int main()
 {
     constexpr int screen_width = 1600;
@@ -32,21 +34,7 @@ int main()
 
         DrawGrid(20, 1.0f);
 
-        DrawCube(
-            {0.0f, 1.0f, 0.0f},
-            0.5f,
-            0.1f,
-            0.5f,
-            BLUE
-        );
-
-        DrawCubeWires(
-            {0.0f, 1.0f, 0.0f},
-            0.5f,
-            0.1f,
-            0.5f,
-            DARKBLUE
-        );
+        aerial::DrawDrone({0.0f, 1.0f, 0.0f});
 
         EndMode3D();
 
@@ -59,12 +47,12 @@ int main()
         );
 
         DrawText(
-            "3D Simulation - Milestone 1.2",
+            "3D Quadcopter Renderer - Milestone 1.3",
             20,
             55,
             18,
             GRAY
-        );
+        );        
 
         DrawFPS(20, 90);
 
