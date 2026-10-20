@@ -5,5 +5,10 @@
 
 namespace aerial::physics
 {
-    void Integrate(DroneState& state, double dt);
+    inline constexpr double gravity = 9.81;
+
+    void Integrate(
+            DroneState& state,
+            double dt,
+            const Eigen::Vector3d& acceleration = Eigen::Vector3d(0.0, 0.0, -gravity));
 }

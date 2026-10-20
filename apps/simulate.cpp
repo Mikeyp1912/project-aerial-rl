@@ -23,10 +23,9 @@ int main() {
     aerial::CameraController camera_controller;
 
     aerial::physics::DroneState drone_state;
-    drone_state.position = {0.0, 0.0, 1.0};
 
-    // Temporary constant velocity for testing motion.
-    drone_state.velocity = {0.5, 0.0, 0.0};
+    drone_state.position = {0.0, 0.0, 5.0};
+    drone_state.velocity = Eigen::Vector3d::Zero();
 
     constexpr double physics_dt = 1.0 / 120.0;
     constexpr double max_frame_time = 0.25;
