@@ -34,6 +34,7 @@ FetchContent_MakeAvailable(raylib)
 add_executable(simulate
     apps/simulate.cpp
     src/rendering/drone_renderer.cpp
+    src/rendering/camera_controller.cpp
 )
 
 target_include_directories(simulate
