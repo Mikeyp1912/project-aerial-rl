@@ -1,9 +1,11 @@
 // /apps/simulate.cpp
 #include <raylib.h>
+#include <algorithm>
 
+#include "aerial/physics/drone_state.hpp"
+#include "aerial/physics/integrator.hpp"
 #include "aerial/rendering/drone_renderer.hpp"
 #include "aerial/rendering/camera_controller.hpp"
-#include "aerial/physics/drone_state.hpp"
 #include "aerial/rendering/coordinate_conversion.hpp"
 
 int main() {
@@ -23,7 +25,28 @@ int main() {
     aerial::physics::DroneState drone_state;
     drone_state.position = {0.0, 0.0, 1.0};
 
+    // Temporary constant velocity for testing motion.
+    drone_state.velocity = {0.5, 0.0, 0.0};
+
+    constexpr double physics_dt = 1.0 / 120.0;
+    constexpr double max_frame_time = 0.25;
+
+    double accumulator = 0.0;
+
     while (!WindowShouldClose()) {
+        const double frame_time = std::min(
+            static_cast<double>(GetFrameTime()),
+            max_frame_time
+        );
+
+        accumulator += frame_time;
+
+        while (accumulator >= physics_dt)
+        {
+            aerial::physics::Integrate(drone_state, physics_dt);
+            accumulator -= physics_dt;
+        }
+
         camera_controller.Update();
 
         BeginDrawing();

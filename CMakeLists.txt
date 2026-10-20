@@ -30,6 +30,28 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(raylib)
 
+# Physics library — independent of raylib
+add_library(aerial_physics STATIC
+    src/physics/integrator.cpp
+)
+
+target_include_directories(aerial_physics
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(aerial_physics
+    PUBLIC
+        Eigen3::Eigen
+)
+
+target_compile_options(aerial_physics
+    PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+)
+
 # Simulator executable
 add_executable(simulate
     apps/simulate.cpp
@@ -44,6 +66,7 @@ target_include_directories(simulate
 
 target_link_libraries(simulate
     PRIVATE
+        aerial_physics
         Eigen3::Eigen
         raylib
 )
@@ -110,5 +133,26 @@ if(BUILD_TESTING)
     add_test(
         NAME coordinate_conversion
         COMMAND coordinate_conversion_test
+    )
+
+    add_executable(integrator_test
+        tests/integrator_test.cpp
+    )
+
+    target_link_libraries(integrator_test
+        PRIVATE
+            aerial_physics
+    )
+
+    target_compile_options(integrator_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+    )
+
+    add_test(
+        NAME integrator
+        COMMAND integrator_test
     )
 endif()
