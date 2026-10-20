@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "aerial/physics/drone_state.hpp"
+#include "aerial/physics/drone_parameters.hpp"
 #include "aerial/physics/integrator.hpp"
 #include "aerial/rendering/drone_renderer.hpp"
 #include "aerial/rendering/camera_controller.hpp"
@@ -23,6 +24,9 @@ int main() {
     aerial::CameraController camera_controller;
 
     aerial::physics::DroneState drone_state;
+    aerial::physics::DroneParameters drone_parameters;
+
+    const Eigen::Vector3d applied_force(0.0, 0.0, drone_parameters.mass * aerial::physics::gravity);
 
     drone_state.position = {0.0, 0.0, 5.0};
     drone_state.velocity = Eigen::Vector3d::Zero();
@@ -42,7 +46,12 @@ int main() {
 
         while (accumulator >= physics_dt)
         {
-            aerial::physics::Integrate(drone_state, physics_dt);
+            aerial::physics::Integrate(
+                drone_state,
+                drone_parameters,
+                applied_force,
+                physics_dt
+            );
             accumulator -= physics_dt;
         }
 
@@ -61,13 +70,6 @@ int main() {
         aerial::DrawDrone(
                 aerial::rendering::ToRaylib(drone_state.position),
                 aerial::rendering::ToRaylibRotation(drone_state.orientation)
-                );
-
-        drone_state.orientation = Eigen::Quaterniond(
-                Eigen::AngleAxisd(
-                    30.0 * 3.14159265358979323846 / 180.0,
-                    Eigen::Vector3d::UnitX()
-                )
                 );
 
         EndMode3D();

@@ -1,6 +1,7 @@
 // /include/aerial/physics/integrator.hpp
 #pragma once
 
+#include "aerial/physics/drone_parameters.hpp"
 #include "aerial/physics/drone_state.hpp"
 
 namespace aerial::physics
@@ -9,6 +10,8 @@ namespace aerial::physics
 
     void Integrate(
             DroneState& state,
-            double dt,
-            const Eigen::Vector3d& acceleration = Eigen::Vector3d(0.0, 0.0, -gravity));
+            const DroneParameters& parameters,
+            const Eigen::Vector3d& Force,
+            double dt
+            );
 }
