@@ -1,0 +1,21 @@
+# Build directories
+/build/
+/cmake-build-*/
+
+# CMake generated files
+/compile_commands.json
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+build.ninja
+
+# Editor and tooling caches
+.cache/
+.clangd/
+.vscode/
+.idea/
+
+# Temporary files
+*.swp
+*.swo
+*~
