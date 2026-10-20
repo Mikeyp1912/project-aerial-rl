@@ -54,3 +54,34 @@ target_compile_options(simulate
         -Wextra
         -Wpedantic
 )
+
+# Tests
+include(CTest)
+
+if(BUILD_TESTING)
+    add_executable(drone_state_test
+        tests/drone_state_test.cpp
+    )
+
+    target_include_directories(drone_state_test
+        PRIVATE
+            ${PROJECT_SOURCE_DIR}/include
+    )
+
+    target_link_libraries(drone_state_test
+        PRIVATE
+            Eigen3::Eigen
+    )
+
+    target_compile_options(drone_state_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+    )
+
+    add_test(
+        NAME drone_state
+        COMMAND drone_state_test
+    )
+endif()
