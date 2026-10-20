@@ -84,4 +84,31 @@ if(BUILD_TESTING)
         NAME drone_state
         COMMAND drone_state_test
     )
+
+    add_executable(coordinate_conversion_test
+        tests/coordinate_conversion_test.cpp
+    )
+
+    target_include_directories(coordinate_conversion_test
+        PRIVATE
+            ${PROJECT_SOURCE_DIR}/include
+    )
+
+    target_link_libraries(coordinate_conversion_test
+        PRIVATE
+            Eigen3::Eigen
+            raylib
+    )
+
+    target_compile_options(coordinate_conversion_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+    )
+
+    add_test(
+        NAME coordinate_conversion
+        COMMAND coordinate_conversion_test
+    )
 endif()

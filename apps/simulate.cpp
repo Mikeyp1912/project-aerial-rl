@@ -3,6 +3,8 @@
 
 #include "aerial/rendering/drone_renderer.hpp"
 #include "aerial/rendering/camera_controller.hpp"
+#include "aerial/physics/drone_state.hpp"
+#include "aerial/rendering/coordinate_conversion.hpp"
 
 int main() {
     constexpr int screen_width = 1600;
@@ -18,6 +20,9 @@ int main() {
 
     aerial::CameraController camera_controller;
 
+    aerial::physics::DroneState drone_state;
+    drone_state.position = {0.0, 0.0, 1.0};
+
     while (!WindowShouldClose()) {
         camera_controller.Update();
 
@@ -31,7 +36,9 @@ int main() {
         DrawGrid(20, 1.0f);
 
         // Temporary drone representation
-        aerial::DrawDrone({0.0f, 1.0f, 0.0f});
+        aerial::DrawDrone(
+                aerial::rendering::ToRaylib(drone_state.position)
+                );
 
         EndMode3D();
 
