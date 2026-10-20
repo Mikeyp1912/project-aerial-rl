@@ -35,9 +35,17 @@ int main() {
         // Ground reference grid
         DrawGrid(20, 1.0f);
 
-        // Temporary drone representation
+        // Drone representation
         aerial::DrawDrone(
-                aerial::rendering::ToRaylib(drone_state.position)
+                aerial::rendering::ToRaylib(drone_state.position),
+                aerial::rendering::ToRaylibRotation(drone_state.orientation)
+                );
+
+        drone_state.orientation = Eigen::Quaterniond(
+                Eigen::AngleAxisd(
+                    30.0 * 3.14159265358979323846 / 180.0,
+                    Eigen::Vector3d::UnitX()
+                )
                 );
 
         EndMode3D();

@@ -3,12 +3,24 @@
 #include "aerial/rendering/drone_renderer.hpp"
 
 #include <cmath>
+#include <rlgl.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#include <raymath.h>
+#pragma GCC diagnostic pop
 
 namespace aerial
 {
 
-    void DrawDrone(Vector3 position)
+    void DrawDrone(Vector3 position, Matrix orientation)
     {
+        rlPushMatrix();
+        rlTranslatef(position.x, position.y, position.z);
+        rlMultMatrixf(MatrixToFloat(orientation));
+
+        // Geometry is now defined aroun the local origin.
+        position = {0.0f, 0.0f, 0.0f};
+
         // Dimensions in metres
         constexpr float arm_length = 0.16f;
         constexpr float arm_radius = 0.012f;
@@ -72,7 +84,7 @@ namespace aerial
             );
 
             // Front motor indicators
-            if (dz > 0.0f)
+            if (dx > 0.0f)
             {
                 DrawSphere(
                     motor_top,
@@ -93,6 +105,8 @@ namespace aerial
             0.07f,
             BLACK
         );
+
+        rlPopMatrix();
     }
 
 }

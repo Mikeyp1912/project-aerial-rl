@@ -6,5 +6,5 @@
 
 namespace aerial 
 {
-    void DrawDrone(Vector3 position);
+    void DrawDrone(Vector3 position, Matrix orientation);
 }
