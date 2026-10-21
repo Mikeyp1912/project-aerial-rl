@@ -36,6 +36,7 @@ add_library(aerial_physics STATIC
     src/physics/thrust.cpp
     src/physics/rotational_dynamics.cpp
     src/physics/motor_model.cpp
+    src/physics/motor_commands.cpp
 )
 
 target_include_directories(aerial_physics
@@ -220,5 +221,26 @@ if(BUILD_TESTING)
     add_test(
         NAME motor_model
         COMMAND motor_model_test
+    )
+
+    add_executable(motor_commands_test
+        tests/motor_commands_test.cpp
+    )
+
+    target_link_libraries(motor_commands_test
+        PRIVATE
+            aerial_physics
+    )
+
+    target_compile_options(motor_commands_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+    )
+
+    add_test(
+        NAME motor_commands
+        COMMAND motor_commands_test
     )
 endif()

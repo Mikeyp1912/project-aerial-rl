@@ -8,6 +8,8 @@
 #include "aerial/physics/integrator.hpp"
 #include "aerial/physics/rotational_dynamics.hpp"
 #include "aerial/physics/motor_model.hpp"
+#include "aerial/physics/motor_commands.hpp"
+
 #include "aerial/rendering/drone_renderer.hpp"
 #include "aerial/rendering/camera_controller.hpp"
 #include "aerial/rendering/coordinate_conversion.hpp"
@@ -32,15 +34,18 @@ int main() {
     drone_state.position = {0.0, 0.0, 1.0};
     drone_state.velocity = Eigen::Vector3d::Zero();
 
-    const double hover_thrust = drone_parameters.mass * aerial::physics::gravity / 4.0;
+    const double hover_command =
+        drone_parameters.mass * aerial::physics::gravity /
+        (4.0 * drone_parameters.max_motor_thrust);
 
-    // Slightly more thrust on the left, less on the right.
-    // The total thrust remains equal to the drone's weight.
-    const std::array<double, 4> motor_thrusts = {
-        hover_thrust + 0.01,
-        hover_thrust + 0.01,
-        hover_thrust - 0.01,
-        hover_thrust - 0.01
+    // Small roll input while preserving total thrust.
+    constexpr double roll_input = 0.002;
+
+    const aerial::physics::MotorCommands motor_commands = {
+        hover_command + roll_input,
+        hover_command + roll_input,
+        hover_command - roll_input,
+        hover_command - roll_input
     };
 
     constexpr double physics_dt = 1.0 / 120.0;
@@ -58,6 +63,12 @@ int main() {
 
         while (accumulator >= physics_dt) {
             // Calculate combined motor force and torque.
+            const auto motor_thrusts =
+                aerial::physics::CommandsToThrust(
+                    drone_parameters,
+                    motor_commands
+                );
+
             const aerial::physics::MotorOutput motor_output =
                 aerial::physics::CalculateMotorOutput(
                     drone_parameters,
