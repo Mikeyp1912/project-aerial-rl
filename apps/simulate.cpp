@@ -1,12 +1,13 @@
 // /apps/simulate.cpp
 #include <raylib.h>
 #include <algorithm>
+#include <array>
 
 #include "aerial/physics/drone_state.hpp"
 #include "aerial/physics/drone_parameters.hpp"
 #include "aerial/physics/integrator.hpp"
-#include "aerial/physics/thrust.hpp"
 #include "aerial/physics/rotational_dynamics.hpp"
+#include "aerial/physics/motor_model.hpp"
 #include "aerial/rendering/drone_renderer.hpp"
 #include "aerial/rendering/camera_controller.hpp"
 #include "aerial/rendering/coordinate_conversion.hpp"
@@ -28,12 +29,19 @@ int main() {
     aerial::physics::DroneState drone_state;
     aerial::physics::DroneParameters drone_parameters;
 
-    const double total_thrust = drone_parameters.mass * aerial::physics::gravity;
-
     drone_state.position = {0.0, 0.0, 1.0};
     drone_state.velocity = Eigen::Vector3d::Zero();
 
-    const Eigen::Vector3d applied_torque(0.002, 0.0, 0.0);
+    const double hover_thrust = drone_parameters.mass * aerial::physics::gravity / 4.0;
+
+    // Slightly more thrust on the left, less on the right.
+    // The total thrust remains equal to the drone's weight.
+    const std::array<double, 4> motor_thrusts = {
+        hover_thrust + 0.01,
+        hover_thrust + 0.01,
+        hover_thrust - 0.01,
+        hover_thrust - 0.01
+    };
 
     constexpr double physics_dt = 1.0 / 120.0;
     constexpr double max_frame_time = 0.25;
@@ -49,18 +57,22 @@ int main() {
         accumulator += frame_time;
 
         while (accumulator >= physics_dt) {
-            // Calculate thrust using the current orientation.
-            const Eigen::Vector3d thrust_force =
-                aerial::physics::CalculateThrustForce(
-                    drone_state,
-                    total_thrust
+            // Calculate combined motor force and torque.
+            const aerial::physics::MotorOutput motor_output =
+                aerial::physics::CalculateMotorOutput(
+                    drone_parameters,
+                    motor_thrusts
                 );
+
+            // Convert body-frame force to world-frame force.
+            const Eigen::Vector3d world_force =
+                drone_state.orientation * motor_output.force;
 
             // Integrate translational motion.
             aerial::physics::Integrate(
                 drone_state,
                 drone_parameters,
-                thrust_force,
+                world_force,
                 physics_dt
             );
 
@@ -68,7 +80,7 @@ int main() {
             aerial::physics::IntegrateRotation(
                 drone_state,
                 drone_parameters,
-                applied_torque,
+                motor_output.torque,
                 physics_dt
             );
 
