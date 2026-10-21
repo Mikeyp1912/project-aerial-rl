@@ -22,5 +22,8 @@ namespace aerial::physics
 
         // Reaction torque per unit thrust (m)
         double yaw_torque_coefficient = 0.01;
+
+        // Motor thrust response time constant (seconds)
+        double motor_time_constant = 0.05;
     };
 }

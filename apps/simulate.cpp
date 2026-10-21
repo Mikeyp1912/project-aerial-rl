@@ -1,7 +1,6 @@
 // /apps/simulate.cpp
 #include <raylib.h>
 #include <algorithm>
-#include <array>
 
 #include "aerial/physics/drone_state.hpp"
 #include "aerial/physics/drone_parameters.hpp"
@@ -9,6 +8,7 @@
 #include "aerial/physics/rotational_dynamics.hpp"
 #include "aerial/physics/motor_model.hpp"
 #include "aerial/physics/motor_commands.hpp"
+#include "aerial/physics/motor_dynamics.hpp"
 
 #include "aerial/rendering/drone_renderer.hpp"
 #include "aerial/rendering/camera_controller.hpp"
@@ -30,9 +30,12 @@ int main() {
 
     aerial::physics::DroneState drone_state;
     aerial::physics::DroneParameters drone_parameters;
+    aerial::physics::MotorState motor_state;
 
     drone_state.position = {0.0, 0.0, 1.0};
     drone_state.velocity = Eigen::Vector3d::Zero();
+
+    
 
     const double hover_command =
         drone_parameters.mass * aerial::physics::gravity /
@@ -62,17 +65,26 @@ int main() {
         accumulator += frame_time;
 
         while (accumulator >= physics_dt) {
-            // Calculate combined motor force and torque.
-            const auto motor_thrusts =
+            // Convert normalized commands to target thrust.
+            const auto target_thrusts =
                 aerial::physics::CommandsToThrust(
                     drone_parameters,
                     motor_commands
                 );
 
+            // Update actual motor thrust over time.
+            aerial::physics::UpdateMotorDynamics(
+                motor_state,
+                drone_parameters,
+                target_thrusts,
+                physics_dt
+            );
+
+            // Calculate force and torque from actual thrust.
             const aerial::physics::MotorOutput motor_output =
                 aerial::physics::CalculateMotorOutput(
                     drone_parameters,
-                    motor_thrusts
+                    motor_state.thrusts
                 );
 
             // Convert body-frame force to world-frame force.
