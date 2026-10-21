@@ -2,12 +2,8 @@
 #include <raylib.h>
 #include <algorithm>
 
-#include "aerial/physics/drone_state.hpp"
-#include "aerial/physics/drone_parameters.hpp"
 #include "aerial/physics/integrator.hpp"
-#include "aerial/physics/motor_commands.hpp"
-#include "aerial/physics/motor_dynamics.hpp"
-#include "aerial/physics/simulation.hpp"
+#include "aerial/physics/simulation_environment.hpp"
 
 #include "aerial/rendering/drone_renderer.hpp"
 #include "aerial/rendering/camera_controller.hpp"
@@ -27,14 +23,9 @@ int main() {
 
     aerial::CameraController camera_controller;
 
-    aerial::physics::DroneState drone_state;
-    aerial::physics::DroneParameters drone_parameters;
-    aerial::physics::MotorState motor_state;
+    aerial::physics::Simulation simulation;
 
-    drone_state.position = {0.0, 0.0, 1.0};
-    drone_state.velocity = Eigen::Vector3d::Zero();
-
-    
+    const auto& drone_parameters = simulation.GetParameters();
 
     const double hover_command =
         drone_parameters.mass * aerial::physics::gravity /
@@ -64,16 +55,13 @@ int main() {
         accumulator += frame_time;
 
         while (accumulator >= physics_dt) {
-            aerial::physics::StepSimulation(
-                drone_state,
-                motor_state,
-                drone_parameters,
-                motor_commands,
-                physics_dt
-            );
+            simulation.Step(motor_commands, physics_dt);
 
             accumulator -= physics_dt;
         }
+
+        const auto& drone_state = simulation.GetDroneState();
+
         camera_controller.Update();
 
         BeginDrawing();
