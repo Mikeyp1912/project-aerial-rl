@@ -61,13 +61,16 @@ namespace aerial
             Vector3 motor_top = motor_position;
             motor_top.y += motor_height;
 
+            // Front motors are green, rear motors are red.
+            const Color motor_color = (dx > 0.0f) ? GREEN : RED;
+
             DrawCylinderEx(
                 motor_position,
                 motor_top,
                 motor_radius,
                 motor_radius,
                 16,
-                GRAY
+                motor_color
             );
 
             // Propeller disc
@@ -82,16 +85,6 @@ namespace aerial
                 24,
                 Fade(SKYBLUE, 0.45f)
             );
-
-            // Front motor indicators
-            if (dx > 0.0f)
-            {
-                DrawSphere(
-                    motor_top,
-                    0.008f,
-                    RED
-                );
-            }
         }
 
         // Top plate
@@ -104,6 +97,21 @@ namespace aerial
             0.01f,
             0.07f,
             BLACK
+        );
+
+        // Forward direction indicator (+X).
+        Vector3 front_marker = {
+            position.x + 0.035f,
+            top_position.y + 0.008f,
+            position.z
+        };
+
+        DrawCube(
+            front_marker,
+            0.025f,
+            0.005f,
+            0.035f,
+            GREEN
         );
 
         rlPopMatrix();

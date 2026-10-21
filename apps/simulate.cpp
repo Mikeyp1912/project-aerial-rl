@@ -105,6 +105,32 @@ int main() {
         DrawFPS(20, 90);
 
         DrawText(
+            TextFormat(
+                "Position: X %.2f | Y %.2f | Z %.2f",
+                drone_state.position.x(),
+                drone_state.position.y(),
+                drone_state.position.z()
+            ),
+            20,
+            120,
+            20,
+            DARKGRAY
+        );
+
+        DrawText(
+            TextFormat(
+                "Angular velocity: X %.2f | Y %.2f | Z %.2f",
+                drone_state.angular_velocity.x(),
+                drone_state.angular_velocity.y(),
+                drone_state.angular_velocity.z()
+            ),
+            20,
+            150,
+            20,
+            DARKGRAY
+        );
+
+        DrawText(
             "RMB: Orbit | Scroll: Zoom | MMB: Pan | R: Reset | F: Focus",
             20,
             screen_height - 35,

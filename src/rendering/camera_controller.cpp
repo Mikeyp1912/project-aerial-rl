@@ -16,9 +16,10 @@ namespace aerial
     {
         target_ = {0.0f, 1.0f, 0.0f};
 
+        // Elevated rear three-quarter view.
         distance_ = 2.5f;
-        yaw_ = 0.785398f;
-        pitch_ = 0.45f;
+        yaw_ = -1.15f;
+        pitch_ = 0.55f;
 
         camera_.up = {0.0f, 1.0f, 0.0f};
         camera_.fovy = 45.0f;
