@@ -33,6 +33,7 @@ FetchContent_MakeAvailable(raylib)
 # Physics library — independent of raylib
 add_library(aerial_physics STATIC
     src/physics/integrator.cpp
+    src/physics/thrust.cpp
 )
 
 target_include_directories(aerial_physics
@@ -154,5 +155,26 @@ if(BUILD_TESTING)
     add_test(
         NAME integrator
         COMMAND integrator_test
+    )
+
+    add_executable(thrust_test
+        tests/thrust_test.cpp
+    )
+
+    target_link_libraries(thrust_test
+        PRIVATE
+            aerial_physics
+    )
+
+    target_compile_options(thrust_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+    )
+
+    add_test(
+        NAME thrust
+        COMMAND thrust_test
     )
 endif()

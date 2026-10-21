@@ -1,10 +1,12 @@
 // /apps/simulate.cpp
 #include <raylib.h>
 #include <algorithm>
+#include <numbers>
 
 #include "aerial/physics/drone_state.hpp"
 #include "aerial/physics/drone_parameters.hpp"
 #include "aerial/physics/integrator.hpp"
+#include "aerial/physics/thrust.hpp"
 #include "aerial/rendering/drone_renderer.hpp"
 #include "aerial/rendering/camera_controller.hpp"
 #include "aerial/rendering/coordinate_conversion.hpp"
@@ -26,10 +28,17 @@ int main() {
     aerial::physics::DroneState drone_state;
     aerial::physics::DroneParameters drone_parameters;
 
-    const Eigen::Vector3d applied_force(0.0, 0.0, drone_parameters.mass * aerial::physics::gravity);
+    const double total_thrust = drone_parameters.mass * aerial::physics::gravity;
 
-    drone_state.position = {0.0, 0.0, 5.0};
+    drone_state.position = {0.0, 0.0, 1.0};
     drone_state.velocity = Eigen::Vector3d::Zero();
+
+    drone_state.orientation = Eigen::Quaterniond(
+        Eigen::AngleAxisd(
+            15.0 * std::numbers::pi / 180.0,
+            Eigen::Vector3d::UnitY()
+        )
+    );
 
     constexpr double physics_dt = 1.0 / 120.0;
     constexpr double max_frame_time = 0.25;
@@ -46,12 +55,19 @@ int main() {
 
         while (accumulator >= physics_dt)
         {
+            const Eigen::Vector3d thrust_force =
+                aerial::physics::CalculateThrustForce(
+                    drone_state,
+                    total_thrust
+                );
+
             aerial::physics::Integrate(
                 drone_state,
                 drone_parameters,
-                applied_force,
+                thrust_force,
                 physics_dt
             );
+
             accumulator -= physics_dt;
         }
 
