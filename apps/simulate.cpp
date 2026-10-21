@@ -5,10 +5,9 @@
 #include "aerial/physics/drone_state.hpp"
 #include "aerial/physics/drone_parameters.hpp"
 #include "aerial/physics/integrator.hpp"
-#include "aerial/physics/rotational_dynamics.hpp"
-#include "aerial/physics/motor_model.hpp"
 #include "aerial/physics/motor_commands.hpp"
 #include "aerial/physics/motor_dynamics.hpp"
+#include "aerial/physics/simulation.hpp"
 
 #include "aerial/rendering/drone_renderer.hpp"
 #include "aerial/rendering/camera_controller.hpp"
@@ -65,51 +64,16 @@ int main() {
         accumulator += frame_time;
 
         while (accumulator >= physics_dt) {
-            // Convert normalized commands to target thrust.
-            const auto target_thrusts =
-                aerial::physics::CommandsToThrust(
-                    drone_parameters,
-                    motor_commands
-                );
-
-            // Update actual motor thrust over time.
-            aerial::physics::UpdateMotorDynamics(
+            aerial::physics::StepSimulation(
+                drone_state,
                 motor_state,
                 drone_parameters,
-                target_thrusts,
-                physics_dt
-            );
-
-            // Calculate force and torque from actual thrust.
-            const aerial::physics::MotorOutput motor_output =
-                aerial::physics::CalculateMotorOutput(
-                    drone_parameters,
-                    motor_state.thrusts
-                );
-
-            // Convert body-frame force to world-frame force.
-            const Eigen::Vector3d world_force =
-                drone_state.orientation * motor_output.force;
-
-            // Integrate translational motion.
-            aerial::physics::Integrate(
-                drone_state,
-                drone_parameters,
-                world_force,
-                physics_dt
-            );
-
-            // Integrate rotational motion.
-            aerial::physics::IntegrateRotation(
-                drone_state,
-                drone_parameters,
-                motor_output.torque,
+                motor_commands,
                 physics_dt
             );
 
             accumulator -= physics_dt;
         }
-
         camera_controller.Update();
 
         BeginDrawing();
