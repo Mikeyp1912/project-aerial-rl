@@ -34,6 +34,7 @@ FetchContent_MakeAvailable(raylib)
 add_library(aerial_physics STATIC
     src/physics/integrator.cpp
     src/physics/thrust.cpp
+    src/physics/rotational_dynamics.cpp
 )
 
 target_include_directories(aerial_physics
@@ -176,5 +177,26 @@ if(BUILD_TESTING)
     add_test(
         NAME thrust
         COMMAND thrust_test
+    )
+
+    add_executable(rotational_dynamics_test
+        tests/rotational_dynamics_test.cpp
+    )
+
+    target_link_libraries(rotational_dynamics_test
+        PRIVATE
+            aerial_physics
+    )
+
+    target_compile_options(rotational_dynamics_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+    )
+
+    add_test(
+        NAME rotational_dynamics
+        COMMAND rotational_dynamics_test
     )
 endif()

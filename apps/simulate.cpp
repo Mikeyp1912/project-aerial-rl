@@ -1,12 +1,12 @@
 // /apps/simulate.cpp
 #include <raylib.h>
 #include <algorithm>
-#include <numbers>
 
 #include "aerial/physics/drone_state.hpp"
 #include "aerial/physics/drone_parameters.hpp"
 #include "aerial/physics/integrator.hpp"
 #include "aerial/physics/thrust.hpp"
+#include "aerial/physics/rotational_dynamics.hpp"
 #include "aerial/rendering/drone_renderer.hpp"
 #include "aerial/rendering/camera_controller.hpp"
 #include "aerial/rendering/coordinate_conversion.hpp"
@@ -33,12 +33,7 @@ int main() {
     drone_state.position = {0.0, 0.0, 1.0};
     drone_state.velocity = Eigen::Vector3d::Zero();
 
-    drone_state.orientation = Eigen::Quaterniond(
-        Eigen::AngleAxisd(
-            15.0 * std::numbers::pi / 180.0,
-            Eigen::Vector3d::UnitY()
-        )
-    );
+    const Eigen::Vector3d applied_torque(0.002, 0.0, 0.0);
 
     constexpr double physics_dt = 1.0 / 120.0;
     constexpr double max_frame_time = 0.25;
@@ -53,18 +48,27 @@ int main() {
 
         accumulator += frame_time;
 
-        while (accumulator >= physics_dt)
-        {
+        while (accumulator >= physics_dt) {
+            // Calculate thrust using the current orientation.
             const Eigen::Vector3d thrust_force =
                 aerial::physics::CalculateThrustForce(
                     drone_state,
                     total_thrust
                 );
 
+            // Integrate translational motion.
             aerial::physics::Integrate(
                 drone_state,
                 drone_parameters,
                 thrust_force,
+                physics_dt
+            );
+
+            // Integrate rotational motion.
+            aerial::physics::IntegrateRotation(
+                drone_state,
+                drone_parameters,
+                applied_torque,
                 physics_dt
             );
 
