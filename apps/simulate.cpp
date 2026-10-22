@@ -46,20 +46,43 @@ int main() {
 
     double accumulator = 0.0;
 
+    bool paused = false;
+
     while (!WindowShouldClose()) {
         const double frame_time = std::min(
             static_cast<double>(GetFrameTime()),
             max_frame_time
         );
 
-        accumulator += frame_time;
+        // Pause or resume physics
+        if (IsKeyPressed(KEY_SPACE)) {
+            paused = !paused;
 
-        while (accumulator >= physics_dt) {
-            simulation.Step(motor_commands, physics_dt);
-
-            accumulator -= physics_dt;
+            // Discard any unconsumed partial timestep
+            accumulator = 0.0;
         }
 
+        // Reset the simulation to its initial state
+        if (IsKeyPressed(KEY_R)) {
+            simulation.Reset();
+            accumulator = 0.0;
+        }
+
+        // Single-step while paused
+        if (paused) {
+            if (IsKeyPressed(KEY_N)) {
+                simulation.Step(motor_commands, physics_dt);
+            }
+        }
+        else {
+            accumulator += frame_time;
+
+            while (accumulator >= physics_dt) {
+                simulation.Step(motor_commands, physics_dt);
+                accumulator -= physics_dt;
+            }
+        }
+        
         const auto& drone_state = simulation.GetDroneState();
 
         camera_controller.Update();
@@ -118,7 +141,40 @@ int main() {
         );
 
         DrawText(
-            "RMB: Orbit | Scroll: Zoom | MMB: Pan | R: Reset | F: Focus",
+            TextFormat(
+                "Simulation: %s",
+                paused ? "PAUSED" : "RUNNING"
+            ),
+            20,
+            180,
+            20,
+            paused ? ORANGE : DARKGREEN
+        );
+
+        DrawText(
+            TextFormat(
+                "Simulation time: %.3f s | Steps: %llu",
+                simulation.GetSimulationTime(),
+                static_cast<unsigned long long>(
+                    simulation.GetStepCount()
+                )
+            ),
+            20,
+            210,
+            20,
+            DARKGRAY
+        );
+
+        DrawText(
+            "SPACE: Pause | N: Step | R: Reset | T: Camera Reset | F: Focus",
+            20,
+            screen_height - 60,
+            18,
+            DARKGRAY
+        );
+
+        DrawText(
+            "RMB: Orbit | Scroll: Zoom | MMB: Pan",
             20,
             screen_height - 35,
             18,

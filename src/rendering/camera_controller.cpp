@@ -91,7 +91,7 @@ namespace aerial
             target_.y += up.y * delta.y *scale;
         }
 
-        if (IsKeyPressed(KEY_R)) {
+        if (IsKeyPressed(KEY_T)) {
             Reset();
         }
 

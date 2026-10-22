@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "aerial/physics/simulation.hpp"
 
 namespace aerial::physics
@@ -24,9 +26,15 @@ namespace aerial::physics
             const MotorState& GetMotorState() const;
             const DroneParameters& GetParameters() const;
 
+            double GetSimulationTime() const;
+            std::uint64_t GetStepCount() const;
+
         private:
             DroneParameters parameters_;
             DroneState drone_state_;
             MotorState motor_state_;
+
+            double simulation_time_ = 0.0;
+            std::uint64_t step_count_ = 0;
     };
 }

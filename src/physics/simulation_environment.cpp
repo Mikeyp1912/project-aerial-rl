@@ -2,6 +2,8 @@
 
 #include "aerial/physics/simulation_environment.hpp"
 
+#include <cmath>
+
 namespace aerial::physics
 {
     Simulation::Simulation(const DroneParameters& parameters)
@@ -24,6 +26,9 @@ namespace aerial::physics
 
         // Motors begin stopped
         motor_state_ = MotorState{};
+
+        simulation_time_ = 0.0;
+        step_count_ = 0;
     }
 
     void Simulation::Step(
@@ -31,6 +36,10 @@ namespace aerial::physics
             double dt
             )
     {
+        if (dt <= 0.0 || !std::isfinite(dt)) {
+            return;
+        }
+
         StepSimulation(
                 drone_state_,
                 motor_state_,
@@ -38,6 +47,9 @@ namespace aerial::physics
                 commands,
                 dt
                 );
+
+        simulation_time_ += dt;
+        ++step_count_;
     }
 
     const DroneState& Simulation::GetDroneState() const
@@ -53,5 +65,15 @@ namespace aerial::physics
     const DroneParameters& Simulation::GetParameters() const
     {
         return parameters_;
+    }
+
+    double Simulation::GetSimulationTime() const
+    {
+        return simulation_time_;
+    }
+
+    std::uint64_t Simulation::GetStepCount() const
+    {
+        return step_count_;
     }
 }

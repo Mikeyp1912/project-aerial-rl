@@ -145,6 +145,53 @@ int main()
         }
     }
 
+    
+    // Test simulation time and step counting.
+    simulation.Reset();
+
+    if (!Near(simulation.GetSimulationTime(), 0.0) ||
+        simulation.GetStepCount() != 0)
+    {
+        std::cerr << "Simulation clock reset test failed\n";
+        return 1;
+    }
+
+    constexpr double test_dt = 1.0 / 120.0;
+
+    for (int i = 0; i < 120; ++i)
+    {
+        simulation.Step(zero_commands, test_dt);
+    }
+
+    if (!Near(simulation.GetSimulationTime(), 1.0) ||
+        simulation.GetStepCount() != 120)
+    {
+        std::cerr << "Simulation clock advancement test failed\n";
+        return 1;
+    }
+
+    // Invalid timesteps must not advance the clock.
+    simulation.Step(zero_commands, 0.0);
+    simulation.Step(zero_commands, -1.0);
+
+    if (!Near(simulation.GetSimulationTime(), 1.0) ||
+        simulation.GetStepCount() != 120)
+    {
+        std::cerr << "Invalid timestep clock test failed\n";
+        return 1;
+    }
+
+    // Reset must clear the clock and step counter.
+    simulation.Reset();
+
+    if (!Near(simulation.GetSimulationTime(), 0.0) ||
+        simulation.GetStepCount() != 0)
+    {
+        std::cerr << "Simulation clock reset failed\n";
+        return 1;
+    }
+
+
     std::cout << "Simulation environment tests passed\n";
     return 0;
 }
