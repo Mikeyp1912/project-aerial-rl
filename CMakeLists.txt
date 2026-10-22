@@ -85,6 +85,23 @@ target_compile_options(simulate
         -Wpedantic
 )
 
+# Headless physics benchmark
+add_executable(benchmark_simulation
+    apps/benchmark_simulation.cpp
+)
+
+target_link_libraries(benchmark_simulation
+    PRIVATE
+        aerial_physics
+)
+
+target_compile_options(benchmark_simulation
+    PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+)
+
 # Tests
 include(CTest)
 
