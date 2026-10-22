@@ -60,6 +60,31 @@ target_compile_options(aerial_physics
         -Wpedantic
 )
 
+# Flight control library
+add_library(aerial_control STATIC
+    src/control/attitude_controller.cpp
+    src/control/rate_controller.cpp
+    src/control/flight_controller.cpp
+)
+
+target_include_directories(aerial_control
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(aerial_control
+    PUBLIC
+        Eigen3::Eigen
+        aerial_physics
+)
+
+target_compile_options(aerial_control
+    PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+)
+
 # Simulator executable
 add_executable(simulate
     apps/simulate.cpp
@@ -348,5 +373,93 @@ if(BUILD_TESTING)
     add_test(
         NAME motor_mixer
         COMMAND motor_mixer_test
+    )
+
+    add_executable(attitude_controller_test
+        tests/attitude_controller_test.cpp
+    )
+
+    target_link_libraries(attitude_controller_test
+        PRIVATE
+            aerial_control
+    )
+
+    target_compile_options(attitude_controller_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME attitude_controller
+        COMMAND attitude_controller_test
+    )
+
+    add_executable(rate_controller_test
+        tests/rate_controller_test.cpp
+    )
+
+    target_link_libraries(rate_controller_test
+        PRIVATE
+            aerial_control
+    )
+
+    target_compile_options(rate_controller_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME rate_controller
+        COMMAND rate_controller_test
+    )
+
+    add_executable(flight_controller_test
+        tests/flight_controller_test.cpp
+    )
+
+    target_link_libraries(flight_controller_test
+        PRIVATE
+            aerial_control
+    )
+
+    target_compile_options(flight_controller_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME flight_controller
+        COMMAND flight_controller_test
+    )
+
+    add_executable(closed_loop_attitude_test
+        tests/closed_loop_attitude_test.cpp
+    )
+
+    target_link_libraries(closed_loop_attitude_test
+        PRIVATE
+            aerial_control
+    )
+
+    target_compile_options(closed_loop_attitude_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME closed_loop_attitude
+        COMMAND closed_loop_attitude_test
     )
 endif()
