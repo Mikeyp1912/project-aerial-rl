@@ -37,6 +37,7 @@ add_library(aerial_physics STATIC
     src/physics/rotational_dynamics.cpp
     src/physics/motor_model.cpp
     src/physics/motor_commands.cpp
+    src/physics/motor_mixer.cpp
     src/physics/motor_dynamics.cpp
     src/physics/simulation.cpp
     src/physics/simulation_environment.cpp
@@ -325,5 +326,27 @@ if(BUILD_TESTING)
     add_test(
         NAME simulation_environment
         COMMAND simulation_environment_test
+    )
+
+    add_executable(motor_mixer_test
+        tests/motor_mixer_test.cpp
+    )
+
+    target_link_libraries(motor_mixer_test
+        PRIVATE
+            aerial_physics
+    )
+
+    target_compile_options(motor_mixer_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME motor_mixer
+        COMMAND motor_mixer_test
     )
 endif()
