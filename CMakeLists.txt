@@ -65,6 +65,7 @@ add_library(aerial_control STATIC
     src/control/attitude_controller.cpp
     src/control/rate_controller.cpp
     src/control/flight_controller.cpp
+    src/control/flight_control_mode.cpp
 )
 
 target_include_directories(aerial_control
@@ -100,6 +101,7 @@ target_include_directories(simulate
 target_link_libraries(simulate
     PRIVATE
         aerial_physics
+        aerial_control
         Eigen3::Eigen
         raylib
 )
@@ -461,5 +463,72 @@ if(BUILD_TESTING)
     add_test(
         NAME closed_loop_attitude
         COMMAND closed_loop_attitude_test
+    )
+
+    add_executable(attitude_tracking_test
+        tests/attitude_tracking_test.cpp
+    )
+
+    target_link_libraries(attitude_tracking_test
+        PRIVATE
+            aerial_control
+            aerial_physics
+    )
+
+    target_compile_options(attitude_tracking_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME attitude_tracking
+        COMMAND attitude_tracking_test
+    )
+
+    add_executable(flight_control_mode_test
+        tests/flight_control_mode_test.cpp
+    )
+
+    target_link_libraries(flight_control_mode_test
+        PRIVATE
+            aerial_control
+    )
+
+    target_compile_options(flight_control_mode_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME flight_control_mode
+        COMMAND flight_control_mode_test
+    )
+
+    add_executable(telemetry_history_test
+        tests/telemetry_history_test.cpp
+    )
+
+    target_include_directories(telemetry_history_test
+        PRIVATE
+            ${PROJECT_SOURCE_DIR}/include
+    )
+
+    target_compile_options(telemetry_history_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME telemetry_history
+        COMMAND telemetry_history_test
     )
 endif()
