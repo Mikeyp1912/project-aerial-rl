@@ -66,6 +66,7 @@ add_library(aerial_control STATIC
     src/control/rate_controller.cpp
     src/control/flight_controller.cpp
     src/control/flight_control_mode.cpp
+    src/control/altitude_controller.cpp
 )
 
 target_include_directories(aerial_control
@@ -530,5 +531,50 @@ if(BUILD_TESTING)
     add_test(
         NAME telemetry_history
         COMMAND telemetry_history_test
+    )
+
+    add_executable(altitude_controller_test
+        tests/altitude_controller_test.cpp
+    )
+
+    target_link_libraries(altitude_controller_test
+        PRIVATE
+            aerial_control
+    )
+
+    target_compile_options(altitude_controller_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME altitude_controller
+        COMMAND altitude_controller_test
+    )
+
+    add_executable(closed_loop_altitude_test
+        tests/closed_loop_altitude_test.cpp
+    )
+
+    target_link_libraries(closed_loop_altitude_test
+        PRIVATE
+            aerial_control
+            aerial_physics
+    )
+
+    target_compile_options(closed_loop_altitude_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME closed_loop_altitude
+        COMMAND closed_loop_altitude_test
     )
 endif()
