@@ -9,7 +9,8 @@ namespace aerial::control
     enum class FlightControlMode
     {
         OpenLoop,
-        AttitudeHold
+        AttitudeHold,
+        AltitudeHold
     };
 
     struct FlightControlModeState

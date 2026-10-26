@@ -6,11 +6,18 @@ namespace aerial::control
 {
     void ToggleFlightControlMode(FlightControlModeState& state)
     {
-        if (state.mode == FlightControlMode::OpenLoop) {
-            state.mode = FlightControlMode::AttitudeHold;
-        }
-        else {
-            state.mode = FlightControlMode::OpenLoop;
+        switch (state.mode) {
+            case FlightControlMode::OpenLoop:
+                state.mode = FlightControlMode::AttitudeHold;
+                break;
+
+            case FlightControlMode::AttitudeHold:
+                state.mode = FlightControlMode::AltitudeHold;
+                break;
+
+            case FlightControlMode::AltitudeHold:
+                state.mode = FlightControlMode::OpenLoop;
+                break;
         }
 
         ResetFlightController(state.controller_state);

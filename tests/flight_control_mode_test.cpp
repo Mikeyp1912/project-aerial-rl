@@ -25,6 +25,16 @@ int main()
 
     assert(state.mode == FlightControlMode::AttitudeHold);
 
+    // Toggle back into AltitudeHold.
+    aerial::control::ToggleFlightControlMode(state);
+
+    assert(state.mode == FlightControlMode::AltitudeHold);
+
+    // Reset must preserve the selected mode.
+    aerial::control::ResetFlightControlMode(state);
+
+    assert(state.mode == FlightControlMode::AltitudeHold);
+
     // Toggle back into open-loop.
     aerial::control::ToggleFlightControlMode(state);
 
