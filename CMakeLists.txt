@@ -756,4 +756,22 @@ if(BUILD_TESTING)
         NAME external_disturbance
         COMMAND external_disturbance_test
     )
+
+    add_executable(closed_loop_disturbance_injection_test
+        tests/closed_loop_disturbance_injection_test.cpp
+    )
+
+    target_link_libraries(closed_loop_disturbance_injection_test
+        PRIVATE aerial_control aerial_physics
+    )
+
+    target_compile_options(closed_loop_disturbance_injection_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME closed_loop_disturbance_injection
+        COMMAND closed_loop_disturbance_injection_test
+    )
+
 endif()
