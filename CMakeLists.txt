@@ -69,6 +69,7 @@ add_library(aerial_control STATIC
     src/control/altitude_controller.cpp
     src/control/horizontal_velocity_controller.cpp
     src/control/horizontal_position_controller.cpp
+    src/control/flight_control_targets.cpp
 )
 
 target_include_directories(aerial_control
@@ -668,6 +669,23 @@ if(BUILD_TESTING)
     add_test(
         NAME closed_loop_horizontal_position
         COMMAND closed_loop_horizontal_position_test
+    )
+
+    add_executable(flight_control_targets_test
+        tests/flight_control_targets_test.cpp
+    )
+
+    target_link_libraries(flight_control_targets_test
+        PRIVATE aerial_control
+    )
+
+    target_compile_options(flight_control_targets_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME flight_control_targets
+        COMMAND flight_control_targets_test
     )
 
 endif()

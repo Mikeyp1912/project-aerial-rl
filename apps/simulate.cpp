@@ -9,6 +9,7 @@
 #include "aerial/control/altitude_controller.hpp"
 #include "aerial/control/horizontal_position_controller.hpp"
 #include "aerial/control/horizontal_velocity_controller.hpp"
+#include "aerial/control/flight_control_targets.hpp"
 
 #include "aerial/physics/integrator.hpp"
 #include "aerial/physics/simulation_environment.hpp"
@@ -124,25 +125,29 @@ int main() {
             accumulator = 0.0;
         }
 
-        // Toggle between open-loop and attitude-hold control
+        // Toggle modes
         if (IsKeyPressed(KEY_M)) {
             aerial::control::ToggleFlightControlMode(flight_control);
 
-            const auto mode = flight_control.mode;
+            aerial::control::FlightControlTargets targets;
 
-            if (mode == aerial::control::FlightControlMode::AltitudeHold ||
-                mode == aerial::control::FlightControlMode::PositionHold) {
+            targets.position = target_position;
+            targets.altitude = target_altitude;
+            targets.roll = target_roll;
+            targets.pitch = target_pitch;
+            targets.yaw = target_yaw;
 
-                target_altitude = simulation.GetDroneState().position.z();
-            }
+            aerial::control::CaptureFlightModeTargets(
+                flight_control.mode,
+                simulation.GetDroneState(),
+                targets
+            );
 
-            if (mode == aerial::control::FlightControlMode::PositionHold) {
-                target_position =
-                    simulation.GetDroneState().position.head<2>();
-
-                target_roll = 0.0;
-                target_pitch = 0.0;
-            }
+            target_position = targets.position;
+            target_altitude = targets.altitude;
+            target_roll = targets.roll;
+            target_pitch = targets.pitch;
+            target_yaw = targets.yaw;
 
             controller_output_valid = false;
             altitude_output_valid = false;
