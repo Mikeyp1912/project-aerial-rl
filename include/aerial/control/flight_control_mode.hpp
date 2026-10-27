@@ -10,7 +10,8 @@ namespace aerial::control
     {
         OpenLoop,
         AttitudeHold,
-        AltitudeHold
+        AltitudeHold,
+        PositionHold
     };
 
     struct FlightControlModeState

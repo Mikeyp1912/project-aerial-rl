@@ -16,6 +16,9 @@ namespace aerial::control
                 break;
 
             case FlightControlMode::AltitudeHold:
+                state.mode = FlightControlMode::PositionHold;
+                break;
+            case FlightControlMode::PositionHold:
                 state.mode = FlightControlMode::OpenLoop;
                 break;
         }

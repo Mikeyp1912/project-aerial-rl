@@ -7,6 +7,8 @@
 #include "aerial/control/flight_controller.hpp"
 #include "aerial/control/flight_control_mode.hpp"
 #include "aerial/control/altitude_controller.hpp"
+#include "aerial/control/horizontal_position_controller.hpp"
+#include "aerial/control/horizontal_velocity_controller.hpp"
 
 #include "aerial/physics/integrator.hpp"
 #include "aerial/physics/simulation_environment.hpp"
@@ -64,6 +66,18 @@ int main() {
     aerial::control::AltitudeControllerParameters altitude_parameters;
     aerial::control::AltitudeControllerOutput altitude_output;
 
+    aerial::control::HorizontalPositionControllerParameters position_parameters;
+    aerial::control::HorizontalVelocityControllerParameters velocity_parameters;
+
+    aerial::control::HorizontalPositionControllerOutput position_output;
+    aerial::control::HorizontalVelocityControllerOutput velocity_output;
+
+    Eigen::Vector2d target_position = simulation.GetDroneState().position.head<2>();
+
+    constexpr double position_step = 0.5;
+
+    bool position_output_valid = false;
+
     double target_altitude = simulation.GetDroneState().position.z();
 
     constexpr double altitude_step = 0.5;
@@ -114,49 +128,70 @@ int main() {
         if (IsKeyPressed(KEY_M)) {
             aerial::control::ToggleFlightControlMode(flight_control);
 
-            if (flight_control.mode == aerial::control::FlightControlMode::AltitudeHold) {
-                // Capture current altitude when entering altitude hold
+            const auto mode = flight_control.mode;
+
+            if (mode == aerial::control::FlightControlMode::AltitudeHold ||
+                mode == aerial::control::FlightControlMode::PositionHold) {
+
                 target_altitude = simulation.GetDroneState().position.z();
+            }
+
+            if (mode == aerial::control::FlightControlMode::PositionHold) {
+                target_position =
+                    simulation.GetDroneState().position.head<2>();
+
+                target_roll = 0.0;
+                target_pitch = 0.0;
             }
 
             controller_output_valid = false;
             altitude_output_valid = false;
+            position_output_valid = false;
 
             accumulator = 0.0;
         }
 
         // Adjust target orientation while attitude hold is enabled.
         if (flight_control.mode != aerial::control::FlightControlMode::OpenLoop) {
-            if (IsKeyPressed(KEY_LEFT)) {
-                target_roll = std::clamp(
-                    target_roll - attitude_step,
-                    -maximum_tilt,
-                    maximum_tilt
-                );
-            }
+            const bool manual_tilt = flight_control.mode != aerial::control::FlightControlMode::PositionHold;
 
-            if (IsKeyPressed(KEY_RIGHT)) {
-                target_roll = std::clamp(
-                    target_roll + attitude_step,
-                    -maximum_tilt,
-                    maximum_tilt
-                );
-            }
+            if (manual_tilt) {
+                if (IsKeyPressed(KEY_LEFT)) {
+                    target_roll = std::clamp(
+                        target_roll - attitude_step,
+                        -maximum_tilt,
+                        maximum_tilt
+                    );
+                }
 
-            if (IsKeyPressed(KEY_UP)) {
-                target_pitch = std::clamp(
-                    target_pitch + attitude_step,
-                    -maximum_tilt,
-                    maximum_tilt
-                );
-            }
+                if (IsKeyPressed(KEY_RIGHT)) {
+                    target_roll = std::clamp(
+                        target_roll + attitude_step,
+                        -maximum_tilt,
+                        maximum_tilt
+                    );
+                }
 
-            if (IsKeyPressed(KEY_DOWN)) {
-                target_pitch = std::clamp(
-                    target_pitch - attitude_step,
-                    -maximum_tilt,
-                    maximum_tilt
-                );
+                if (IsKeyPressed(KEY_UP)) {
+                    target_pitch = std::clamp(
+                        target_pitch + attitude_step,
+                        -maximum_tilt,
+                        maximum_tilt
+                    );
+                }
+
+                if (IsKeyPressed(KEY_DOWN)) {
+                    target_pitch = std::clamp(
+                        target_pitch - attitude_step,
+                        -maximum_tilt,
+                        maximum_tilt
+                    );
+                }
+
+                if (IsKeyPressed(KEY_L)) {
+                    target_roll = 0.0;
+                    target_pitch = 0.0;
+                }
             }
 
             if (IsKeyPressed(KEY_Q)) {
@@ -166,16 +201,29 @@ int main() {
             if (IsKeyPressed(KEY_E)) {
                 target_yaw += attitude_step;
             }
+        }
 
-            // Return target orientation to level.
-            if (IsKeyPressed(KEY_L)) {
-                target_roll = 0.0;
-                target_pitch = 0.0;
+        if (flight_control.mode == aerial::control::FlightControlMode::PositionHold) {
+            if (IsKeyPressed(KEY_W)) {
+                target_position.x() += position_step;
+            }
+
+            if (IsKeyPressed(KEY_S)) {
+                target_position.x() -= position_step;
+            }
+
+            if (IsKeyPressed(KEY_A)) {
+                target_position.y() += position_step;
+            }
+
+            if (IsKeyPressed(KEY_D)) {
+                target_position.y() -= position_step;
             }
         }
 
         // Adjust altitude target only in altitude-hold mode.
-        if (flight_control.mode == aerial::control::FlightControlMode::AltitudeHold) {
+        if (flight_control.mode == aerial::control::FlightControlMode::AltitudeHold ||
+                flight_control.mode == aerial::control::FlightControlMode::PositionHold) {
 
             if (IsKeyPressed(KEY_PAGE_UP)) {
                 target_altitude = std::clamp(
@@ -213,6 +261,12 @@ int main() {
             altitude_output = {};
             altitude_output_valid = false;
 
+            target_position = simulation.GetDroneState().position.head<2>();
+
+            position_output = {};
+            velocity_output = {};
+            position_output_valid = false;
+
             accumulator = 0.0;
         }
 
@@ -220,6 +274,37 @@ int main() {
         const auto step_simulation = [&]() {
             aerial::physics::MotorCommands commands = motor_commands;
 
+            /*
+             * POSITION
+             */
+            if (flight_control.mode == aerial::control::FlightControlMode::PositionHold) {
+                position_output =
+                    aerial::control::UpdateHorizontalPositionController(
+                        simulation.GetDroneState(),
+                        target_position,
+                        position_parameters
+                    );
+
+                velocity_output =
+                    aerial::control::UpdateHorizontalVelocityController(
+                        simulation.GetDroneState(),
+                        position_output.desired_velocity,
+                        target_yaw,
+                        velocity_parameters
+                    );
+
+                target_roll = velocity_output.target_roll;
+                target_pitch = velocity_output.target_pitch;
+
+                position_output_valid = true;
+            }
+            else {
+                position_output_valid = false;
+            }
+
+            /*
+             * ORIENTATION
+             */
             const Eigen::Quaterniond target_orientation =
                 Eigen::Quaterniond(
                         Eigen::AngleAxisd(
@@ -245,7 +330,11 @@ int main() {
 
                 double collective_thrust = hover_thrust;
 
-                if (flight_control.mode == aerial::control::FlightControlMode::AltitudeHold) {
+                /*
+                 * ALTITUDE
+                 */
+                if (flight_control.mode == aerial::control::FlightControlMode::AltitudeHold ||
+                        flight_control.mode == aerial::control::FlightControlMode::PositionHold) {
 
                     altitude_output =
                         aerial::control::UpdateAltitudeController(
@@ -418,6 +507,55 @@ int main() {
             DARKGRAY
         );
 
+        if (flight_control.mode == aerial::control::FlightControlMode::PositionHold &&
+            position_output_valid) {
+
+            const Eigen::Vector2d current_position =
+                drone_state.position.head<2>();
+
+            const Eigen::Vector2d error =
+                target_position - current_position;
+
+            DrawText(
+                TextFormat(
+                    "XY Target: (%.2f, %.2f) m | Error: %.3f m",
+                    target_position.x(),
+                    target_position.y(),
+                    error.norm()
+                ),
+                20, 570, 20, DARKGRAY
+            );
+
+            DrawText(
+                TextFormat(
+                    "XY Velocity: (%.2f, %.2f) m/s",
+                    drone_state.velocity.x(),
+                    drone_state.velocity.y()
+                ),
+                20, 600, 20, DARKGRAY
+            );
+
+            DrawText(
+                TextFormat(
+                    "XY Target Velocity: (%.2f, %.2f) m/s",
+                    position_output.desired_velocity.x(),
+                    position_output.desired_velocity.y()
+                ),
+                20, 630, 20, DARKGRAY
+            );
+
+            DrawText(
+                TextFormat(
+                    "Position saturated: %s | Velocity saturated: %s",
+                    position_output.saturated ? "YES" : "NO",
+                    velocity_output.saturated ? "YES" : "NO"
+                ),
+                20, 660, 20,
+                (position_output.saturated || velocity_output.saturated)
+                    ? RED : DARKGREEN
+            );
+        }
+
         if (flight_control.mode != aerial::control::FlightControlMode::OpenLoop && controller_output_valid) {
             const auto& rate =
                 controller_output.desired_angular_rate;
@@ -532,6 +670,10 @@ int main() {
             case aerial::control::FlightControlMode::AltitudeHold:
                 mode_name = "ALTITUDE HOLD";
                 break;
+
+            case aerial::control::FlightControlMode::PositionHold:
+                mode_name = "POSITION HOLD";
+                break;
         }
 
         DrawText(
@@ -560,11 +702,13 @@ int main() {
         );
 
         DrawText(
-            "SPACE: Pause | N: Step | R: Reset | M: Mode | Arrows: Roll/Pitch | Q/E: Yaw | L: Level | T: Camera Reset | F: Focus",
-            20,
-            screen_height - 60,
-            18,
-            DARKGRAY
+            "SPACE: Pause | N: Step | R: Reset | M: Mode | Q/E: Yaw | T: Camera Reset | F: Focus",
+            20, screen_height - 85, 18, DARKGRAY
+        );
+
+        DrawText(
+            "Arrows: Manual Tilt | L: Level | WASD: XY Target | PgUp/PgDn: Altitude",
+            20, screen_height - 60, 18, DARKGRAY
         );
 
         DrawText(
