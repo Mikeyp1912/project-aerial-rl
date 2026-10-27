@@ -85,6 +85,29 @@ target_compile_options(aerial_sensors
         -Wpedantic
 )
 
+# Reinforcement learning environment — headless
+add_library(aerial_rl STATIC
+    src/rl/flight_environment.cpp
+)
+
+target_include_directories(aerial_rl
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(aerial_rl
+    PUBLIC
+        aerial_physics
+        aerial_sensors
+)
+
+target_compile_options(aerial_rl
+    PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+)
+
 # Flight control library
 add_library(aerial_control STATIC
     src/control/attitude_controller.cpp
@@ -883,6 +906,23 @@ if(BUILD_TESTING)
     add_test(
         NAME sensor_driven_flight
         COMMAND sensor_driven_flight_test
+    )
+
+    add_executable(flight_environment_test
+        tests/flight_environment_test.cpp
+    )
+
+    target_link_libraries(flight_environment_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(flight_environment_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME flight_environment
+        COMMAND flight_environment_test
     )
 
 endif()
