@@ -17,7 +17,9 @@ namespace aerial::physics
             const DroneParameters &parameters,
             const MotorCommands &commands,
             double dt,
-            const Eigen::Vector3d& wind_velocity
+            const Eigen::Vector3d& wind_velocity,
+            const Eigen::Vector3d& external_force,
+            const Eigen::Vector3d& external_torque
             )
     {
         if (dt <= 0.0 || !std::isfinite(dt)) {
@@ -50,7 +52,7 @@ namespace aerial::physics
                 wind_velocity
                 );
 
-        const Eigen::Vector3d world_force = thrust_force + drag_force;
+        const Eigen::Vector3d world_force = thrust_force + drag_force + external_force;
 
         // 5. Integrate translational motion
         Integrate(
@@ -64,7 +66,7 @@ namespace aerial::physics
         IntegrateRotation(
                 drone_state,
                 parameters,
-                motor_output.torque,
+                motor_output.torque + external_torque,
                 dt
                 );
     }

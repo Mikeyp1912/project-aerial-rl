@@ -740,4 +740,20 @@ if(BUILD_TESTING)
         COMMAND wind_simulation_test
     )
 
+    add_executable(external_disturbance_test
+        tests/external_disturbance_test.cpp
+    )
+
+    target_link_libraries(external_disturbance_test
+        PRIVATE aerial_physics
+    )
+
+    target_compile_options(external_disturbance_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME external_disturbance
+        COMMAND external_disturbance_test
+    )
 endif()

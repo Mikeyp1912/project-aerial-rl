@@ -23,8 +23,14 @@ namespace aerial::physics
                     );
 
             void SetWindVelocity(const Eigen::Vector3d& wind_velocity);
+            void SetExternalForce(const Eigen::Vector3d& force);
+            void SetExternalTorque(const Eigen::Vector3d& torque);
 
             const Eigen::Vector3d& GetWindVelocity() const;
+            const Eigen::Vector3d& GetExternalForce() const;
+            const Eigen::Vector3d& GetExternalTorque() const;
+
+            void ClearExternalDisturbances();
 
             const DroneState& GetDroneState() const;
             const MotorState& GetMotorState() const;
@@ -42,5 +48,7 @@ namespace aerial::physics
             std::uint64_t step_count_ = 0;
 
             Eigen::Vector3d wind_velocity_ = Eigen::Vector3d::Zero();
+            Eigen::Vector3d external_force_ = Eigen::Vector3d::Zero();
+            Eigen::Vector3d external_torque_ = Eigen::Vector3d::Zero();
     };
 }

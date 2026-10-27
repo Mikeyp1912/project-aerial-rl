@@ -29,6 +29,8 @@ namespace aerial::physics
 
         simulation_time_ = 0.0;
         step_count_ = 0;
+
+        ClearExternalDisturbances();
     }
 
     void Simulation::Step(
@@ -46,7 +48,9 @@ namespace aerial::physics
                 parameters_,
                 commands,
                 dt,
-                wind_velocity_
+                wind_velocity_,
+                external_force_,
+                external_torque_
                 );
 
         simulation_time_ += dt;
@@ -64,9 +68,44 @@ namespace aerial::physics
         wind_velocity_ = wind_velocity;
     }
 
+    void Simulation::SetExternalForce(const Eigen::Vector3d& force)
+    {
+        if (!force.allFinite()) {
+            return;
+        }
+
+        external_force_ = force;
+    }
+
+    void Simulation::SetExternalTorque(const Eigen::Vector3d& torque)
+    {
+        if (!torque.allFinite())
+        {
+            return;
+        }
+
+        external_torque_ = torque;
+    }
+
     const Eigen::Vector3d& Simulation::GetWindVelocity() const
     {
         return wind_velocity_;
+    }
+
+    const Eigen::Vector3d& Simulation::GetExternalForce() const 
+    {
+        return external_force_;
+    }
+
+    const Eigen::Vector3d& Simulation::GetExternalTorque() const
+    {
+        return external_torque_;
+    }
+
+    void Simulation::ClearExternalDisturbances()
+    {
+        external_force_.setZero();
+        external_torque_.setZero();
     }
 
     const DroneState& Simulation::GetDroneState() const
