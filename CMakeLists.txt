@@ -163,6 +163,8 @@ target_compile_options(benchmark_simulation
 include(CTest)
 
 if(BUILD_TESTING)
+    add_compile_options(-UNDEBUG)
+
     add_executable(drone_state_test
         tests/drone_state_test.cpp
     )
