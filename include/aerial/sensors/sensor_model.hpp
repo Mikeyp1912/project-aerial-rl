@@ -23,6 +23,10 @@ namespace aerial::sensors
         Eigen::Vector3d position_bias = Eigen::Vector3d::Zero();
         Eigen::Vector3d velocity_bias = Eigen::Vector3d::Zero();
         Eigen::Vector3d angular_velocity_bias = Eigen::Vector3d::Zero();
+
+        // Body-frame orientation error (radians)
+        Eigen::Vector3d orientation_noise = Eigen::Vector3d::Zero();
+        Eigen::Vector3d orientation_bias = Eigen::Vector3d::Zero();
     };
 
     struct SensorMeasurements

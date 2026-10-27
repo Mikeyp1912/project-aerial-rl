@@ -2,7 +2,6 @@
 
 #include "aerial/sensors/sensor_model.hpp"
 
-#include <cmath>
 #include <stdexcept>
 
 namespace aerial::sensors
@@ -23,7 +22,9 @@ namespace aerial::sensors
             !valid_noise(parameters_.angular_velocity_noise) ||
             !parameters_.position_bias.allFinite() ||
             !parameters_.velocity_bias.allFinite() ||
-            !parameters_.angular_velocity_bias.allFinite()) {
+            !parameters_.angular_velocity_bias.allFinite() ||
+            !valid_noise(parameters_.orientation_noise) ||
+            !parameters_.orientation_bias.allFinite()){
             throw std::invalid_argument("Invalid sensor parameters");
         }
     }
@@ -59,7 +60,24 @@ namespace aerial::sensors
             parameters_.velocity_bias +
             SampleNoise(parameters_.velocity_noise);
 
-        measurement.orientation = true_state.orientation;
+        const Eigen::Vector3d rotation_error =
+            parameters_.orientation_bias +
+            SampleNoise(parameters_.orientation_noise);
+
+        const double angle = rotation_error.norm();
+
+        Eigen::Quaterniond error_quaternion = Eigen::Quaterniond::Identity();
+
+        if (angle > 0.0) {
+            error_quaternion = Eigen::Quaterniond(
+                    Eigen::AngleAxisd(
+                        angle,
+                        rotation_error / angle
+                        )
+                    );
+        }
+
+        measurement.orientation = (true_state.orientation * error_quaternion).normalized();
 
         measurement.angular_velocity =
             true_state.angular_velocity +
