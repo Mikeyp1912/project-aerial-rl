@@ -22,6 +22,10 @@ namespace aerial::physics
                     double dt
                     );
 
+            void SetWindVelocity(const Eigen::Vector3d& wind_velocity);
+
+            const Eigen::Vector3d& GetWindVelocity() const;
+
             const DroneState& GetDroneState() const;
             const MotorState& GetMotorState() const;
             const DroneParameters& GetParameters() const;
@@ -36,5 +40,7 @@ namespace aerial::physics
 
             double simulation_time_ = 0.0;
             std::uint64_t step_count_ = 0;
+
+            Eigen::Vector3d wind_velocity_ = Eigen::Vector3d::Zero();
     };
 }

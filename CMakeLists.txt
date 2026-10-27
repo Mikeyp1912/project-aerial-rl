@@ -723,4 +723,21 @@ if(BUILD_TESTING)
         COMMAND aerodynamic_drag_test
     )
 
+    add_executable(wind_simulation_test
+        tests/wind_simulation_test.cpp
+    )
+
+    target_link_libraries(wind_simulation_test
+        PRIVATE aerial_physics
+    )
+
+    target_compile_options(wind_simulation_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME wind_simulation
+        COMMAND wind_simulation_test
+    )
+
 endif()

@@ -16,7 +16,8 @@ namespace aerial::physics
             MotorState &motor_state,
             const DroneParameters &parameters,
             const MotorCommands &commands,
-            double dt
+            double dt,
+            const Eigen::Vector3d& wind_velocity
             )
     {
         if (dt <= 0.0 || !std::isfinite(dt)) {
@@ -43,7 +44,11 @@ namespace aerial::physics
         // 4. Apply drag and rotate thrust into world coordinates
         const Eigen::Vector3d thrust_force = drone_state.orientation * motor_output.force;
         
-        const Eigen::Vector3d drag_force = CalculateAerodynamicDrag(drone_state, parameters);
+        const Eigen::Vector3d drag_force = CalculateAerodynamicDrag(
+                drone_state,
+                parameters,
+                wind_velocity
+                );
 
         const Eigen::Vector3d world_force = thrust_force + drag_force;
 

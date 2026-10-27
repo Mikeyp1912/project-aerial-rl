@@ -14,6 +14,7 @@ namespace aerial::physics
             MotorState& motor_state,
             const DroneParameters& parameters,
             const MotorCommands& commands,
-            double dt
+            double dt,
+            const Eigen::Vector3d& wind_velocity = Eigen::Vector3d::Zero()
             );
 }

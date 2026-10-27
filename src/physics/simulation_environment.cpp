@@ -45,11 +45,28 @@ namespace aerial::physics
                 motor_state_,
                 parameters_,
                 commands,
-                dt
+                dt,
+                wind_velocity_
                 );
 
         simulation_time_ += dt;
         ++step_count_;
+    }
+
+    void Simulation::SetWindVelocity(
+            const Eigen::Vector3d& wind_velocity
+            )
+    {
+        if (!wind_velocity.allFinite()) {
+            return;
+        }
+
+        wind_velocity_ = wind_velocity;
+    }
+
+    const Eigen::Vector3d& Simulation::GetWindVelocity() const
+    {
+        return wind_velocity_;
     }
 
     const DroneState& Simulation::GetDroneState() const

@@ -11,6 +11,7 @@ namespace aerial::physics
 {
     Eigen::Vector3d CalculateAerodynamicDrag(
             const DroneState& state,
-            const DroneParameters& parameters
+            const DroneParameters& parameters,
+            const Eigen::Vector3d& wind_velocity = Eigen::Vector3d::Zero()
             );
 }
