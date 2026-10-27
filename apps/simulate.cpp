@@ -431,6 +431,27 @@ int main() {
                 aerial::rendering::ToRaylibRotation(drone_state.orientation)
                 );
 
+        // Visualise the commanded position in position hold
+        if (flight_control.mode == aerial::control::FlightControlMode::PositionHold) {
+            const Eigen::Vector3d target_world(
+                    target_position.x(),
+                    target_position.y(),
+                    target_altitude
+                    );
+
+            const Vector3 target_render = aerial::rendering::ToRaylib(target_world);
+
+            const Vector3 drone_render = aerial::rendering::ToRaylib(drone_state.position);
+
+            DrawSphere(target_render, 0.04f, GREEN);
+
+            DrawLine3D(
+                    drone_render,
+                    target_render,
+                    DARKGREEN
+                    );
+        }
+
         EndMode3D();
 
         DrawText(
