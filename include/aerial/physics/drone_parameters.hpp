@@ -25,5 +25,9 @@ namespace aerial::physics
 
         // Motor thrust response time constant (seconds)
         double motor_time_constant = 0.05;
+
+        // Linear drag coefficients for world, X, Y, Z (N s/m)
+        // Zero preserves the original drag-free dynamics
+        Eigen::Vector3d linear_drag = Eigen::Vector3d::Zero();
     };
 }

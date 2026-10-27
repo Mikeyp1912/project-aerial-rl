@@ -41,6 +41,7 @@ add_library(aerial_physics STATIC
     src/physics/motor_dynamics.cpp
     src/physics/simulation.cpp
     src/physics/simulation_environment.cpp
+    src/physics/aerodynamic_drag.cpp
 )
 
 target_include_directories(aerial_physics
@@ -704,4 +705,22 @@ if(BUILD_TESTING)
         NAME disturbance_recovery
         COMMAND disturbance_recovery_test
     )
+
+    add_executable(aerodynamic_drag_test
+        tests/aerodynamic_drag_test.cpp
+    )
+
+    target_link_libraries(aerodynamic_drag_test
+        PRIVATE aerial_physics
+    )
+
+    target_compile_options(aerodynamic_drag_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME aerodynamic_drag
+        COMMAND aerodynamic_drag_test
+    )
+
 endif()

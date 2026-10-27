@@ -7,6 +7,7 @@
 #include "aerial/physics/integrator.hpp"
 #include "aerial/physics/motor_model.hpp"
 #include "aerial/physics/rotational_dynamics.hpp"
+#include "aerial/physics/aerodynamic_drag.hpp"
 
 namespace aerial::physics
 {
@@ -39,8 +40,12 @@ namespace aerial::physics
                 motor_state.thrusts
                 );
 
-        // 4. Rotate thrust into world coordinates
-        const Eigen::Vector3d world_force = drone_state.orientation * motor_output.force;
+        // 4. Apply drag and rotate thrust into world coordinates
+        const Eigen::Vector3d thrust_force = drone_state.orientation * motor_output.force;
+        
+        const Eigen::Vector3d drag_force = CalculateAerodynamicDrag(drone_state, parameters);
+
+        const Eigen::Vector3d world_force = thrust_force + drag_force;
 
         // 5. Integrate translational motion
         Integrate(
