@@ -688,4 +688,20 @@ if(BUILD_TESTING)
         COMMAND flight_control_targets_test
     )
 
+    add_executable(disturbance_recovery_test
+        tests/disturbance_recovery_test.cpp
+    )
+
+    target_link_libraries(disturbance_recovery_test
+        PRIVATE aerial_control aerial_physics
+    )
+
+    target_compile_options(disturbance_recovery_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME disturbance_recovery
+        COMMAND disturbance_recovery_test
+    )
 endif()
