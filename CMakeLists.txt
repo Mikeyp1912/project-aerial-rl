@@ -61,6 +61,29 @@ target_compile_options(aerial_physics
         -Wpedantic
 )
 
+# Sensor models
+add_library(aerial_sensors STATIC
+    src/sensors/sensor_model.cpp
+)
+
+target_include_directories(aerial_sensors
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(aerial_sensors
+    PUBLIC
+        Eigen3::Eigen
+        aerial_physics
+)
+
+target_compile_options(aerial_sensors
+    PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+)
+
 # Flight control library
 add_library(aerial_control STATIC
     src/control/attitude_controller.cpp
@@ -772,6 +795,23 @@ if(BUILD_TESTING)
     add_test(
         NAME closed_loop_disturbance_injection
         COMMAND closed_loop_disturbance_injection_test
+    )
+
+    add_executable(sensor_model_test
+        tests/sensor_model_test.cpp
+    )
+
+    target_link_libraries(sensor_model_test
+        PRIVATE aerial_sensors
+    )
+
+    target_compile_options(sensor_model_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME sensor_model
+        COMMAND sensor_model_test
     )
 
 endif()
