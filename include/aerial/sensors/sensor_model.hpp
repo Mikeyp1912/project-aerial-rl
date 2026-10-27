@@ -27,6 +27,10 @@ namespace aerial::sensors
         // Body-frame orientation error (radians)
         Eigen::Vector3d orientation_noise = Eigen::Vector3d::Zero();
         Eigen::Vector3d orientation_bias = Eigen::Vector3d::Zero();
+
+        // Accelerometer noise and bias (m/s^2)
+        Eigen::Vector3d accelerometer_noise = Eigen::Vector3d::Zero();
+        Eigen::Vector3d accelerometer_bias = Eigen::Vector3d::Zero();
     };
 
     struct SensorMeasurements
@@ -37,6 +41,9 @@ namespace aerial::sensors
         Eigen::Quaterniond orientation = Eigen::Quaterniond::Identity();
 
         Eigen::Vector3d angular_velocity = Eigen::Vector3d::Zero();
+
+        // Body-frame specific force (m/s^2)
+        Eigen::Vector3d acceleration = Eigen::Vector3d::Zero();
     };
 
     class SensorModel
@@ -48,7 +55,8 @@ namespace aerial::sensors
                     );
 
             SensorMeasurements Measure(
-                    const physics::DroneState& true_state
+                    const physics::DroneState& true_state,
+                    const Eigen::Vector3d& world_acceleration = Eigen::Vector3d::Zero()
                     );
 
             void Reset(std::uint32_t seed);

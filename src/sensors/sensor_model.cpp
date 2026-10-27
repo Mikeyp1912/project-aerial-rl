@@ -1,6 +1,7 @@
 // /src/sensors/sensor_model.cpp
 
 #include "aerial/sensors/sensor_model.hpp"
+#include "aerial/physics/integrator.hpp"
 
 #include <stdexcept>
 
@@ -24,7 +25,9 @@ namespace aerial::sensors
             !parameters_.velocity_bias.allFinite() ||
             !parameters_.angular_velocity_bias.allFinite() ||
             !valid_noise(parameters_.orientation_noise) ||
-            !parameters_.orientation_bias.allFinite()){
+            !parameters_.orientation_bias.allFinite() ||
+            !valid_noise(parameters_.accelerometer_noise) ||
+            !parameters_.accelerometer_bias.allFinite()){
             throw std::invalid_argument("Invalid sensor parameters");
         }
     }
@@ -45,7 +48,8 @@ namespace aerial::sensors
     }
 
     SensorMeasurements SensorModel::Measure(
-            const physics::DroneState& true_state
+            const physics::DroneState& true_state,
+            const Eigen::Vector3d& world_acceleration
             )
     {
         SensorMeasurements measurement;
@@ -83,6 +87,25 @@ namespace aerial::sensors
             true_state.angular_velocity +
             parameters_.angular_velocity_bias +
             SampleNoise(parameters_.angular_velocity_noise);
+
+        // Gravity acceleration in world coordinates
+        const Eigen::Vector3d gravity_world(
+                0.0,
+                0.0,
+                -physics::gravity
+                );
+
+        // Accelerometers measure non-gravitational specific force
+        const Eigen::Vector3d specific_force_world = world_acceleration - gravity_world;
+
+        // Transform from world coordinates into the drone body frame.
+        // Use the true orientation, not the noisy orientation measurement
+        const Eigen::Vector3d specific_force_body = true_state.orientation.conjugate() * specific_force_world;
+
+        measurement.acceleration =
+            specific_force_body +
+            parameters_.accelerometer_bias +
+            SampleNoise(parameters_.accelerometer_noise);
 
         return measurement;
     }

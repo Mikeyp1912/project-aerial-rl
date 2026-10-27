@@ -814,4 +814,21 @@ if(BUILD_TESTING)
         COMMAND sensor_model_test
     )
 
+    add_executable(accelerometer_test
+        tests/accelerometer_test.cpp
+    )
+
+    target_link_libraries(accelerometer_test
+        PRIVATE aerial_sensors
+    )
+
+    target_compile_options(accelerometer_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME accelerometer
+        COMMAND accelerometer_test
+    )
+
 endif()
