@@ -64,6 +64,7 @@ target_compile_options(aerial_physics
 # Sensor models
 add_library(aerial_sensors STATIC
     src/sensors/sensor_model.cpp
+    src/sensors/sensor_scheduler.cpp
 )
 
 target_include_directories(aerial_sensors
@@ -846,6 +847,23 @@ if(BUILD_TESTING)
     add_test(
         NAME physics_integrated_imu
         COMMAND physics_integrated_imu_test
+    )
+
+    add_executable(sensor_scheduler_test
+        tests/sensor_scheduler_test.cpp
+    )
+
+    target_link_libraries(sensor_scheduler_test
+        PRIVATE aerial_sensors
+    )
+
+    target_compile_options(sensor_scheduler_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME sensor_scheduler
+        COMMAND sensor_scheduler_test
     )
 
 endif()
