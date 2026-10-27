@@ -67,6 +67,8 @@ add_library(aerial_control STATIC
     src/control/flight_controller.cpp
     src/control/flight_control_mode.cpp
     src/control/altitude_controller.cpp
+    src/control/horizontal_velocity_controller.cpp
+    src/control/horizontal_position_controller.cpp
 )
 
 target_include_directories(aerial_control
@@ -577,4 +579,95 @@ if(BUILD_TESTING)
         NAME closed_loop_altitude
         COMMAND closed_loop_altitude_test
     )
+
+    add_executable(horizontal_velocity_controller_test
+        tests/horizontal_velocity_controller_test.cpp
+    )
+
+    target_link_libraries(horizontal_velocity_controller_test
+        PRIVATE
+            aerial_control
+    )
+
+    target_compile_options(horizontal_velocity_controller_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME horizontal_velocity_controller
+        COMMAND horizontal_velocity_controller_test
+    )
+
+    add_executable(closed_loop_horizontal_velocity_test
+        tests/closed_loop_horizontal_velocity_test.cpp
+    )
+
+    target_link_libraries(closed_loop_horizontal_velocity_test
+        PRIVATE
+            aerial_control
+            aerial_physics
+    )
+
+    target_compile_options(closed_loop_horizontal_velocity_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME closed_loop_horizontal_velocity
+        COMMAND closed_loop_horizontal_velocity_test
+    )
+
+    add_executable(horizontal_position_controller_test
+        tests/horizontal_position_controller_test.cpp
+    )
+
+    target_link_libraries(horizontal_position_controller_test
+        PRIVATE
+            aerial_control
+    )
+
+    target_compile_options(horizontal_position_controller_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME horizontal_position_controller
+        COMMAND horizontal_position_controller_test
+    )
+
+    add_executable(closed_loop_horizontal_position_test
+        tests/closed_loop_horizontal_position_test.cpp
+    )
+
+    target_link_libraries(closed_loop_horizontal_position_test
+        PRIVATE
+            aerial_control
+            aerial_physics
+    )
+
+    target_compile_options(closed_loop_horizontal_position_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME closed_loop_horizontal_position
+        COMMAND closed_loop_horizontal_position_test
+    )
+
 endif()
