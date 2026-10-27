@@ -866,4 +866,21 @@ if(BUILD_TESTING)
         COMMAND sensor_scheduler_test
     )
 
+    add_executable(sensor_driven_flight_test
+        tests/sensor_driven_flight_test.cpp
+    )
+
+    target_link_libraries(sensor_driven_flight_test
+        PRIVATE aerial_control aerial_physics aerial_sensors
+    )
+
+    target_compile_options(sensor_driven_flight_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME sensor_driven_flight
+        COMMAND sensor_driven_flight_test
+    )
+
 endif()
