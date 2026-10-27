@@ -31,6 +31,8 @@ namespace aerial::physics
         step_count_ = 0;
 
         ClearExternalDisturbances();
+
+        world_acceleration_.setZero();
     }
 
     void Simulation::Step(
@@ -50,7 +52,8 @@ namespace aerial::physics
                 dt,
                 wind_velocity_,
                 external_force_,
-                external_torque_
+                external_torque_,
+                &world_acceleration_
                 );
 
         simulation_time_ += dt;
@@ -121,6 +124,11 @@ namespace aerial::physics
     const DroneParameters& Simulation::GetParameters() const
     {
         return parameters_;
+    }
+
+    const Eigen::Vector3d& Simulation::GetWorldAcceleration() const
+    {
+        return world_acceleration_;
     }
 
     double Simulation::GetSimulationTime() const

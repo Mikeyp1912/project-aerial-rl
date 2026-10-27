@@ -36,6 +36,8 @@ namespace aerial::physics
             const MotorState& GetMotorState() const;
             const DroneParameters& GetParameters() const;
 
+            const Eigen::Vector3d& GetWorldAcceleration() const;
+
             double GetSimulationTime() const;
             std::uint64_t GetStepCount() const;
 
@@ -50,5 +52,7 @@ namespace aerial::physics
             Eigen::Vector3d wind_velocity_ = Eigen::Vector3d::Zero();
             Eigen::Vector3d external_force_ = Eigen::Vector3d::Zero();
             Eigen::Vector3d external_torque_ = Eigen::Vector3d::Zero();
+
+            Eigen::Vector3d world_acceleration_ = Eigen::Vector3d::Zero();
     };
 }

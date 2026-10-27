@@ -831,4 +831,21 @@ if(BUILD_TESTING)
         COMMAND accelerometer_test
     )
 
+    add_executable(physics_integrated_imu_test
+        tests/physics_integrated_imu_test.cpp
+    )
+
+    target_link_libraries(physics_integrated_imu_test
+        PRIVATE aerial_physics aerial_sensors
+    )
+
+    target_compile_options(physics_integrated_imu_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME physics_integrated_imu
+        COMMAND physics_integrated_imu_test
+    )
+
 endif()

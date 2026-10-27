@@ -19,7 +19,8 @@ namespace aerial::physics
             double dt,
             const Eigen::Vector3d& wind_velocity,
             const Eigen::Vector3d& external_force,
-            const Eigen::Vector3d& external_torque
+            const Eigen::Vector3d& external_torque,
+            Eigen::Vector3d* world_acceleration
             )
     {
         if (dt <= 0.0 || !std::isfinite(dt)) {
@@ -53,6 +54,12 @@ namespace aerial::physics
                 );
 
         const Eigen::Vector3d world_force = thrust_force + drag_force + external_force;
+
+        if (world_acceleration != nullptr) {
+            *world_acceleration =
+                world_force / parameters.mass +
+                Eigen::Vector3d(0.0, 0.0, -gravity);
+        }
 
         // 5. Integrate translational motion
         Integrate(

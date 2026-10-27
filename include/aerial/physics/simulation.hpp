@@ -17,6 +17,7 @@ namespace aerial::physics
             double dt,
             const Eigen::Vector3d& wind_velocity = Eigen::Vector3d::Zero(),
             const Eigen::Vector3d& external_force = Eigen::Vector3d::Zero(),
-            const Eigen::Vector3d& external_torque = Eigen::Vector3d::Zero()
+            const Eigen::Vector3d& external_torque = Eigen::Vector3d::Zero(),
+            Eigen::Vector3d* world_acceleration = nullptr
             );
 }
