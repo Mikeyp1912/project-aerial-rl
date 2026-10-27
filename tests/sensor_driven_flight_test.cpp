@@ -95,14 +95,14 @@ namespace
         );
 
         for (int i = 0; i < steps; ++i) {
-            // Controllers receive the observed state,
+            // Controllers receive observed measurements,
             // never the true physics state.
             const physics::DroneState observed =
                 sensors::MakeObservedState(
                     scheduler.GetMeasurements()
                 );
 
-            // Outer loop: position -> desired velocity.
+            // Position controller.
             const auto position_output =
                 control::UpdateHorizontalPositionController(
                     observed,
@@ -110,7 +110,7 @@ namespace
                     position_params
                 );
 
-            // Horizontal velocity -> desired roll/pitch.
+            // Horizontal velocity controller.
             const auto velocity_output =
                 control::UpdateHorizontalVelocityController(
                     observed,
@@ -140,7 +140,7 @@ namespace
                     )
                 );
 
-            // Maintain target altitude.
+            // Altitude controller.
             const auto altitude_output =
                 control::UpdateAltitudeController(
                     observed,
@@ -149,7 +149,7 @@ namespace
                     altitude_params
                 );
 
-            // Attitude/rate control and motor mixing.
+            // Attitude/rate controller and motor mixing.
             const auto flight_output =
                 control::UpdateFlightController(
                     observed,
@@ -167,14 +167,14 @@ namespace
                 dt
             );
 
-            // Update sensors at their configured sampling rates.
+            // Update sensor measurements at configured rates.
             scheduler.Update(
                 simulation.GetDroneState(),
                 simulation.GetWorldAcceleration(),
                 simulation.GetSimulationTime()
             );
 
-            // Evaluate performance using true physics state.
+            // Evaluate using the true physics state.
             const auto& true_state =
                 simulation.GetDroneState();
 
@@ -202,7 +202,7 @@ namespace
                 position_error
             );
 
-            // Steady-state metrics: t > 7 seconds.
+            // Steady-state metrics: final five seconds.
             if (simulation.GetSimulationTime() > steady_state_start) {
                 steady_position_squared_sum +=
                     position_error * position_error;
@@ -224,7 +224,7 @@ namespace
 
         assert(steady_sample_count > 0);
 
-        // Calculate final metrics.
+        // Final metrics.
         const auto& final_state =
             simulation.GetDroneState();
 
@@ -350,6 +350,59 @@ namespace
 
         return parameters;
     }
+
+    aerial::sensors::SensorParameters MakeBiasParameters(
+        int scenario
+    )
+    {
+        aerial::sensors::SensorParameters parameters;
+
+        switch (scenario) {
+            case 1:
+                // 10 cm horizontal position bias.
+                parameters.position_bias =
+                    Eigen::Vector3d(0.10, 0.0, 0.0);
+                break;
+
+            case 2:
+                // 5 cm/s horizontal velocity bias.
+                parameters.velocity_bias =
+                    Eigen::Vector3d(0.05, 0.0, 0.0);
+                break;
+
+            case 3:
+                // Approximately 2 degrees roll bias.
+                parameters.orientation_bias =
+                    Eigen::Vector3d(0.035, 0.0, 0.0);
+                break;
+
+            case 4:
+                // Angular-rate bias (rad/s).
+                parameters.angular_velocity_bias =
+                    Eigen::Vector3d(0.02, 0.0, 0.0);
+                break;
+
+            case 5:
+                // Combined position, velocity, attitude and rate biases.
+                parameters.position_bias =
+                    Eigen::Vector3d(0.10, -0.05, 0.03);
+
+                parameters.velocity_bias =
+                    Eigen::Vector3d(0.03, -0.02, 0.0);
+
+                parameters.orientation_bias =
+                    Eigen::Vector3d(0.02, -0.02, 0.01);
+
+                parameters.angular_velocity_bias =
+                    Eigen::Vector3d(0.01, -0.01, 0.005);
+                break;
+
+            default:
+                break;
+        }
+
+        return parameters;
+    }
 }
 
 int main()
@@ -452,6 +505,47 @@ int main()
             << steady_position_max_sum / trials << ","
             << steady_altitude_rms_sum / trials << ","
             << steady_speed_rms_sum / trials << "\n";
+    }
+
+    // ---------------------------------------------------------
+    // Test 4: Sensor bias robustness benchmark
+    // ---------------------------------------------------------
+
+    constexpr std::array<const char*, 6> bias_names{
+        "Ideal",
+        "Position bias",
+        "Velocity bias",
+        "Orientation bias",
+        "Angular-rate bias",
+        "Combined biases"
+    };
+
+    std::cout
+        << "\nSensor bias robustness benchmark\n"
+        << "Scenario,FinalPositionError,SteadyPositionRMS,"
+        << "SteadyPositionMax,SteadyAltitudeRMS,"
+        << "SteadySpeedRMS\n";
+
+    for (int scenario = 0; scenario < 6; ++scenario) {
+        const auto parameters =
+            MakeBiasParameters(scenario);
+
+        const Result result =
+            RunScenario(parameters);
+
+        assert(std::isfinite(result.position_error));
+        assert(std::isfinite(result.steady_state_rms_position_error));
+        assert(std::isfinite(result.steady_state_maximum_position_error));
+        assert(std::isfinite(result.steady_state_rms_altitude_error));
+        assert(std::isfinite(result.steady_state_rms_horizontal_speed));
+
+        std::cout
+            << bias_names[scenario] << ","
+            << result.position_error << ","
+            << result.steady_state_rms_position_error << ","
+            << result.steady_state_maximum_position_error << ","
+            << result.steady_state_rms_altitude_error << ","
+            << result.steady_state_rms_horizontal_speed << "\n";
     }
 
     std::cout

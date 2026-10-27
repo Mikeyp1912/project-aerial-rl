@@ -1,0 +1,43 @@
+Ideal multi-rate sensors
+  Position error: 2.23155e-05 m
+  Horizontal speed: 4.43212e-06 m/s
+  Altitude error: 9.62383e-10 m
+  Angular speed: 4.42814e-05 rad/s
+  Whole-flight RMS position error: 0.604492 m
+  Whole-flight maximum position error: 2.23607 m
+  Whole-flight RMS altitude error: 0.0274144 m
+  Steady-state RMS position error: 0.000526518 m
+  Steady-state maximum position error: 0.00207076 m
+  Steady-state RMS altitude error: 1.17714e-06 m
+  Steady-state RMS horizontal speed: 0.00160276 m/s
+Noisy multi-rate sensors
+  Position error: 0.00214088 m
+  Horizontal speed: 0.00587061 m/s
+  Altitude error: 0.00255095 m
+  Angular speed: 0.0105951 rad/s
+  Whole-flight RMS position error: 0.604575 m
+  Whole-flight maximum position error: 2.23607 m
+  Whole-flight RMS altitude error: 0.0286895 m
+  Steady-state RMS position error: 0.00574963 m
+  Steady-state maximum position error: 0.0117856 m
+  Steady-state RMS altitude error: 0.00454118 m
+  Steady-state RMS horizontal speed: 0.0114517 m/s
+
+Steady-state noise robustness benchmark
+Scale,MeanFinalError,MeanSteadyPositionRMS,MeanSteadyPositionMax,MeanSteadyAltitudeRMS,MeanSteadySpeedRMS
+0,2.23155e-05,0.000526518,0.00207076,1.17714e-06,0.00160276
+0.5,0.00250573,0.00293361,0.00513373,0.0018168,0.00539937
+1,0.0050152,0.00578358,0.0100452,0.00363347,0.0105355
+2,0.0100242,0.011518,0.0199631,0.0072666,0.0209821
+5,0.0249715,0.0287448,0.0497709,0.0181646,0.0524119
+
+Sensor bias robustness benchmark
+Scenario,FinalPositionError,SteadyPositionRMS,SteadyPositionMax,SteadyAltitudeRMS,SteadySpeedRMS
+Ideal,2.23155e-05,0.000526518,0.00207076,1.17714e-06,0.00160276
+Position bias,0.0999811,0.100043,0.101755,1.11444e-06,0.0015761
+Velocity bias,0.0499808,0.0500476,0.0517912,1.14511e-06,0.001589
+Orientation bias,0.171757,0.171726,0.172226,0.00133275,0.00180119
+Angular-rate bias,0.0245364,0.0245118,0.0249648,1.185e-06,0.00161361
+Combined biases,0.180793,0.180745,0.18126,0.029131,0.00159984
+
+Sensor-driven flight tests PASSED
