@@ -23,17 +23,26 @@ namespace
 {
     constexpr double dt = 1.0 / 120.0;
     constexpr int steps = 12 * 120;
+    constexpr double steady_state_start = 7.0;
 
     struct Result
     {
+        // Final flight metrics.
         double position_error = 0.0;
         double horizontal_speed = 0.0;
         double altitude_error = 0.0;
         double angular_speed = 0.0;
 
+        // Whole-flight tracking metrics.
         double rms_position_error = 0.0;
         double maximum_position_error = 0.0;
         double rms_altitude_error = 0.0;
+
+        // Steady-state metrics (final five seconds).
+        double steady_state_rms_position_error = 0.0;
+        double steady_state_maximum_position_error = 0.0;
+        double steady_state_rms_altitude_error = 0.0;
+        double steady_state_rms_horizontal_speed = 0.0;
     };
 
     Result RunScenario(
@@ -60,14 +69,25 @@ namespace
         control::FlightControllerState flight_state;
 
         const Eigen::Vector2d target_position(2.0, 1.0);
+
         constexpr double target_altitude = 1.0;
         constexpr double target_yaw = 0.0;
 
+        // Whole-flight accumulators.
         double squared_position_error_sum = 0.0;
         double squared_altitude_error_sum = 0.0;
         double maximum_position_error = 0.0;
 
-        // Initialize sensors before the first control update.
+        // Steady-state accumulators.
+        double steady_position_squared_sum = 0.0;
+        double steady_altitude_squared_sum = 0.0;
+        double steady_speed_squared_sum = 0.0;
+        double steady_maximum_position_error = 0.0;
+
+        int steady_sample_count = 0;
+
+        // Initialize sensor measurements before the first
+        // flight-controller update.
         scheduler.Update(
             simulation.GetDroneState(),
             Eigen::Vector3d::Zero(),
@@ -75,12 +95,14 @@ namespace
         );
 
         for (int i = 0; i < steps; ++i) {
+            // Controllers receive the observed state,
+            // never the true physics state.
             const physics::DroneState observed =
                 sensors::MakeObservedState(
                     scheduler.GetMeasurements()
                 );
 
-            // Outer position loop.
+            // Outer loop: position -> desired velocity.
             const auto position_output =
                 control::UpdateHorizontalPositionController(
                     observed,
@@ -88,7 +110,7 @@ namespace
                     position_params
                 );
 
-            // Horizontal velocity loop.
+            // Horizontal velocity -> desired roll/pitch.
             const auto velocity_output =
                 control::UpdateHorizontalVelocityController(
                     observed,
@@ -97,7 +119,7 @@ namespace
                     velocity_params
                 );
 
-            // Desired attitude from horizontal control.
+            // Construct desired attitude.
             const Eigen::Quaterniond target_orientation =
                 Eigen::Quaterniond(
                     Eigen::AngleAxisd(
@@ -118,7 +140,7 @@ namespace
                     )
                 );
 
-            // Altitude control.
+            // Maintain target altitude.
             const auto altitude_output =
                 control::UpdateAltitudeController(
                     observed,
@@ -140,7 +162,10 @@ namespace
                 );
 
             // Advance the true physics simulation.
-            simulation.Step(flight_output.motor_commands, dt);
+            simulation.Step(
+                flight_output.motor_commands,
+                dt
+            );
 
             // Update sensors at their configured sampling rates.
             scheduler.Update(
@@ -149,8 +174,9 @@ namespace
                 simulation.GetSimulationTime()
             );
 
-            // Calculate performance using the true state.
-            const auto& true_state = simulation.GetDroneState();
+            // Evaluate performance using true physics state.
+            const auto& true_state =
+                simulation.GetDroneState();
 
             const double position_error =
                 (target_position -
@@ -161,6 +187,10 @@ namespace
                     true_state.position.z() - target_altitude
                 );
 
+            const double horizontal_speed =
+                true_state.velocity.head<2>().norm();
+
+            // Whole-flight metrics.
             squared_position_error_sum +=
                 position_error * position_error;
 
@@ -171,10 +201,32 @@ namespace
                 maximum_position_error,
                 position_error
             );
+
+            // Steady-state metrics: t > 7 seconds.
+            if (simulation.GetSimulationTime() > steady_state_start) {
+                steady_position_squared_sum +=
+                    position_error * position_error;
+
+                steady_altitude_squared_sum +=
+                    altitude_error * altitude_error;
+
+                steady_speed_squared_sum +=
+                    horizontal_speed * horizontal_speed;
+
+                steady_maximum_position_error = std::max(
+                    steady_maximum_position_error,
+                    position_error
+                );
+
+                ++steady_sample_count;
+            }
         }
 
-        // Final performance metrics.
-        const auto& final_state = simulation.GetDroneState();
+        assert(steady_sample_count > 0);
+
+        // Calculate final metrics.
+        const auto& final_state =
+            simulation.GetDroneState();
 
         Result result;
 
@@ -193,14 +245,38 @@ namespace
         result.angular_speed =
             final_state.angular_velocity.norm();
 
+        // Whole-flight metrics.
         result.rms_position_error =
-            std::sqrt(squared_position_error_sum / steps);
-
-        result.rms_altitude_error =
-            std::sqrt(squared_altitude_error_sum / steps);
+            std::sqrt(
+                squared_position_error_sum / steps
+            );
 
         result.maximum_position_error =
             maximum_position_error;
+
+        result.rms_altitude_error =
+            std::sqrt(
+                squared_altitude_error_sum / steps
+            );
+
+        // Steady-state metrics.
+        result.steady_state_rms_position_error =
+            std::sqrt(
+                steady_position_squared_sum / steady_sample_count
+            );
+
+        result.steady_state_maximum_position_error =
+            steady_maximum_position_error;
+
+        result.steady_state_rms_altitude_error =
+            std::sqrt(
+                steady_altitude_squared_sum / steady_sample_count
+            );
+
+        result.steady_state_rms_horizontal_speed =
+            std::sqrt(
+                steady_speed_squared_sum / steady_sample_count
+            );
 
         return result;
     }
@@ -220,21 +296,35 @@ namespace
             << result.altitude_error << " m"
             << "\n  Angular speed: "
             << result.angular_speed << " rad/s"
-            << "\n  RMS position error: "
+            << "\n  Whole-flight RMS position error: "
             << result.rms_position_error << " m"
-            << "\n  Maximum position error: "
+            << "\n  Whole-flight maximum position error: "
             << result.maximum_position_error << " m"
-            << "\n  RMS altitude error: "
-            << result.rms_altitude_error << " m\n"
+            << "\n  Whole-flight RMS altitude error: "
+            << result.rms_altitude_error << " m"
+            << "\n  Steady-state RMS position error: "
+            << result.steady_state_rms_position_error << " m"
+            << "\n  Steady-state maximum position error: "
+            << result.steady_state_maximum_position_error << " m"
+            << "\n  Steady-state RMS altitude error: "
+            << result.steady_state_rms_altitude_error << " m"
+            << "\n  Steady-state RMS horizontal speed: "
+            << result.steady_state_rms_horizontal_speed << " m/s\n"
             << std::flush;
 
         assert(std::isfinite(result.position_error));
         assert(std::isfinite(result.horizontal_speed));
         assert(std::isfinite(result.altitude_error));
         assert(std::isfinite(result.angular_speed));
+
         assert(std::isfinite(result.rms_position_error));
         assert(std::isfinite(result.maximum_position_error));
         assert(std::isfinite(result.rms_altitude_error));
+
+        assert(std::isfinite(result.steady_state_rms_position_error));
+        assert(std::isfinite(result.steady_state_maximum_position_error));
+        assert(std::isfinite(result.steady_state_rms_altitude_error));
+        assert(std::isfinite(result.steady_state_rms_horizontal_speed));
     }
 
     aerial::sensors::SensorParameters MakeNoiseParameters(
@@ -298,7 +388,7 @@ int main()
     assert(noisy.angular_speed < 0.35);
 
     // ---------------------------------------------------------
-    // Test 3: Sensor noise robustness benchmark
+    // Test 3: Steady-state sensor noise robustness benchmark
     // ---------------------------------------------------------
 
     constexpr std::array<double, 5> noise_scales{
@@ -309,20 +399,23 @@ int main()
         5.0
     };
 
-    constexpr int trials = 5;
+    constexpr int trials = 20;
 
     std::cout
-        << "\nNoise robustness benchmark\n"
-        << "Scale,MeanFinalError,MeanRMSError,MeanMaxError,"
-        << "MeanAltitudeRMSError\n";
+        << "\nSteady-state noise robustness benchmark\n"
+        << "Scale,MeanFinalError,MeanSteadyPositionRMS,"
+        << "MeanSteadyPositionMax,MeanSteadyAltitudeRMS,"
+        << "MeanSteadySpeedRMS\n";
 
     for (const double scale : noise_scales) {
         double final_error_sum = 0.0;
-        double rms_error_sum = 0.0;
-        double maximum_error_sum = 0.0;
-        double altitude_rms_sum = 0.0;
+        double steady_position_rms_sum = 0.0;
+        double steady_position_max_sum = 0.0;
+        double steady_altitude_rms_sum = 0.0;
+        double steady_speed_rms_sum = 0.0;
 
-        const auto parameters = MakeNoiseParameters(scale);
+        const auto parameters =
+            MakeNoiseParameters(scale);
 
         for (int trial = 0; trial < trials; ++trial) {
             const Result result = RunScenario(
@@ -331,22 +424,34 @@ int main()
             );
 
             assert(std::isfinite(result.position_error));
-            assert(std::isfinite(result.rms_position_error));
-            assert(std::isfinite(result.maximum_position_error));
-            assert(std::isfinite(result.rms_altitude_error));
+            assert(std::isfinite(result.steady_state_rms_position_error));
+            assert(std::isfinite(result.steady_state_maximum_position_error));
+            assert(std::isfinite(result.steady_state_rms_altitude_error));
+            assert(std::isfinite(result.steady_state_rms_horizontal_speed));
 
-            final_error_sum += result.position_error;
-            rms_error_sum += result.rms_position_error;
-            maximum_error_sum += result.maximum_position_error;
-            altitude_rms_sum += result.rms_altitude_error;
+            final_error_sum +=
+                result.position_error;
+
+            steady_position_rms_sum +=
+                result.steady_state_rms_position_error;
+
+            steady_position_max_sum +=
+                result.steady_state_maximum_position_error;
+
+            steady_altitude_rms_sum +=
+                result.steady_state_rms_altitude_error;
+
+            steady_speed_rms_sum +=
+                result.steady_state_rms_horizontal_speed;
         }
 
         std::cout
             << scale << ","
             << final_error_sum / trials << ","
-            << rms_error_sum / trials << ","
-            << maximum_error_sum / trials << ","
-            << altitude_rms_sum / trials << "\n";
+            << steady_position_rms_sum / trials << ","
+            << steady_position_max_sum / trials << ","
+            << steady_altitude_rms_sum / trials << ","
+            << steady_speed_rms_sum / trials << "\n";
     }
 
     std::cout
