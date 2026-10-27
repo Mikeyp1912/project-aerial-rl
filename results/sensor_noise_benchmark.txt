@@ -1,0 +1,26 @@
+Ideal multi-rate sensors
+  Position error: 2.23155e-05 m
+  Horizontal speed: 4.43212e-06 m/s
+  Altitude error: 9.62383e-10 m
+  Angular speed: 4.42814e-05 rad/s
+  RMS position error: 0.604492 m
+  Maximum position error: 2.23607 m
+  RMS altitude error: 0.0274144 m
+Noisy multi-rate sensors
+  Position error: 0.00214088 m
+  Horizontal speed: 0.00587061 m/s
+  Altitude error: 0.00255095 m
+  Angular speed: 0.0105951 rad/s
+  RMS position error: 0.604575 m
+  Maximum position error: 2.23607 m
+  RMS altitude error: 0.0286895 m
+
+Noise robustness benchmark
+Scale,MeanFinalError,MeanRMSError,MeanMaxError,MeanAltitudeRMSError
+0,2.23155e-05,0.604492,2.23607,0.0274144
+0.5,0.00165531,0.604571,2.23607,0.0275743
+1,0.0033056,0.604672,2.23607,0.0278411
+2,0.00660019,0.604923,2.23607,0.0286829
+5,0.0164306,0.606088,2.23607,0.0333316
+
+Sensor-driven flight tests PASSED

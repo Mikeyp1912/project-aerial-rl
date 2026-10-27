@@ -1,6 +1,9 @@
-// /tests/sensor_driven_flight_test.cpp
+
+#include <algorithm>
+#include <array>
 #include <cassert>
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 
 #include <Eigen/Core>
@@ -27,10 +30,15 @@ namespace
         double horizontal_speed = 0.0;
         double altitude_error = 0.0;
         double angular_speed = 0.0;
+
+        double rms_position_error = 0.0;
+        double maximum_position_error = 0.0;
+        double rms_altitude_error = 0.0;
     };
 
     Result RunScenario(
-        const aerial::sensors::SensorParameters& sensor_parameters
+        const aerial::sensors::SensorParameters& sensor_parameters,
+        std::uint32_t seed = 1234
     )
     {
         using namespace aerial;
@@ -40,7 +48,7 @@ namespace
         sensors::SensorScheduler scheduler(
             sensor_parameters,
             sensors::SensorSchedulerParameters{},
-            1234
+            seed
         );
 
         const auto& drone_parameters = simulation.GetParameters();
@@ -55,6 +63,10 @@ namespace
         constexpr double target_altitude = 1.0;
         constexpr double target_yaw = 0.0;
 
+        double squared_position_error_sum = 0.0;
+        double squared_altitude_error_sum = 0.0;
+        double maximum_position_error = 0.0;
+
         // Initialize sensors before the first control update.
         scheduler.Update(
             simulation.GetDroneState(),
@@ -68,6 +80,7 @@ namespace
                     scheduler.GetMeasurements()
                 );
 
+            // Outer position loop.
             const auto position_output =
                 control::UpdateHorizontalPositionController(
                     observed,
@@ -75,6 +88,7 @@ namespace
                     position_params
                 );
 
+            // Horizontal velocity loop.
             const auto velocity_output =
                 control::UpdateHorizontalVelocityController(
                     observed,
@@ -83,6 +97,7 @@ namespace
                     velocity_params
                 );
 
+            // Desired attitude from horizontal control.
             const Eigen::Quaterniond target_orientation =
                 Eigen::Quaterniond(
                     Eigen::AngleAxisd(
@@ -103,6 +118,7 @@ namespace
                     )
                 );
 
+            // Altitude control.
             const auto altitude_output =
                 control::UpdateAltitudeController(
                     observed,
@@ -111,6 +127,7 @@ namespace
                     altitude_params
                 );
 
+            // Attitude/rate control and motor mixing.
             const auto flight_output =
                 control::UpdateFlightController(
                     observed,
@@ -122,18 +139,41 @@ namespace
                     flight_state
                 );
 
-            // Only the physics simulation receives motor commands.
+            // Advance the true physics simulation.
             simulation.Step(flight_output.motor_commands, dt);
 
-            // Sensors sample the updated true state.
+            // Update sensors at their configured sampling rates.
             scheduler.Update(
                 simulation.GetDroneState(),
                 simulation.GetWorldAcceleration(),
                 simulation.GetSimulationTime()
             );
+
+            // Calculate performance using the true state.
+            const auto& true_state = simulation.GetDroneState();
+
+            const double position_error =
+                (target_position -
+                 true_state.position.head<2>().eval()).norm();
+
+            const double altitude_error =
+                std::abs(
+                    true_state.position.z() - target_altitude
+                );
+
+            squared_position_error_sum +=
+                position_error * position_error;
+
+            squared_altitude_error_sum +=
+                altitude_error * altitude_error;
+
+            maximum_position_error = std::max(
+                maximum_position_error,
+                position_error
+            );
         }
 
-        // Evaluate performance using true state, not sensor readings.
+        // Final performance metrics.
         const auto& final_state = simulation.GetDroneState();
 
         Result result;
@@ -146,34 +186,89 @@ namespace
             final_state.velocity.head<2>().norm();
 
         result.altitude_error =
-            std::abs(final_state.position.z() - target_altitude);
+            std::abs(
+                final_state.position.z() - target_altitude
+            );
 
         result.angular_speed =
             final_state.angular_velocity.norm();
 
+        result.rms_position_error =
+            std::sqrt(squared_position_error_sum / steps);
+
+        result.rms_altitude_error =
+            std::sqrt(squared_altitude_error_sum / steps);
+
+        result.maximum_position_error =
+            maximum_position_error;
+
         return result;
     }
 
-    void PrintResult(const char* name, const Result& result)
+    void PrintResult(
+        const char* name,
+        const Result& result
+    )
     {
         std::cout
             << name
-            << "\n  Position error: " << result.position_error << " m"
-            << "\n  Horizontal speed: " << result.horizontal_speed << " m/s"
-            << "\n  Altitude error: " << result.altitude_error << " m"
-            << "\n  Angular speed: " << result.angular_speed << " rad/s\n"
+            << "\n  Position error: "
+            << result.position_error << " m"
+            << "\n  Horizontal speed: "
+            << result.horizontal_speed << " m/s"
+            << "\n  Altitude error: "
+            << result.altitude_error << " m"
+            << "\n  Angular speed: "
+            << result.angular_speed << " rad/s"
+            << "\n  RMS position error: "
+            << result.rms_position_error << " m"
+            << "\n  Maximum position error: "
+            << result.maximum_position_error << " m"
+            << "\n  RMS altitude error: "
+            << result.rms_altitude_error << " m\n"
             << std::flush;
 
         assert(std::isfinite(result.position_error));
         assert(std::isfinite(result.horizontal_speed));
         assert(std::isfinite(result.altitude_error));
         assert(std::isfinite(result.angular_speed));
+        assert(std::isfinite(result.rms_position_error));
+        assert(std::isfinite(result.maximum_position_error));
+        assert(std::isfinite(result.rms_altitude_error));
+    }
+
+    aerial::sensors::SensorParameters MakeNoiseParameters(
+        double scale
+    )
+    {
+        aerial::sensors::SensorParameters parameters;
+
+        parameters.position_noise =
+            scale * Eigen::Vector3d(0.01, 0.01, 0.02);
+
+        parameters.velocity_noise =
+            scale * Eigen::Vector3d(0.02, 0.02, 0.02);
+
+        parameters.orientation_noise =
+            scale * Eigen::Vector3d(0.002, 0.002, 0.003);
+
+        parameters.angular_velocity_noise =
+            scale * Eigen::Vector3d(0.005, 0.005, 0.005);
+
+        parameters.accelerometer_noise =
+            scale * Eigen::Vector3d(0.05, 0.05, 0.05);
+
+        return parameters;
     }
 }
 
 int main()
 {
     using namespace aerial;
+
+    // ---------------------------------------------------------
+    // Test 1: Ideal sensor-driven flight
+    // ---------------------------------------------------------
 
     sensors::SensorParameters ideal_parameters;
 
@@ -186,34 +281,77 @@ int main()
     assert(ideal.altitude_error < 0.15);
     assert(ideal.angular_speed < 0.15);
 
-    sensors::SensorParameters noisy_parameters;
+    // ---------------------------------------------------------
+    // Test 2: Noisy sensor-driven flight
+    // ---------------------------------------------------------
 
-    noisy_parameters.position_noise =
-        Eigen::Vector3d(0.01, 0.01, 0.02);
-
-    noisy_parameters.velocity_noise =
-        Eigen::Vector3d(0.02, 0.02, 0.02);
-
-    noisy_parameters.orientation_noise =
-        Eigen::Vector3d(0.002, 0.002, 0.003);
-
-    noisy_parameters.angular_velocity_noise =
-        Eigen::Vector3d(0.005, 0.005, 0.005);
-
-    noisy_parameters.accelerometer_noise =
-        Eigen::Vector3d(0.05, 0.05, 0.05);
+    const sensors::SensorParameters noisy_parameters =
+        MakeNoiseParameters(1.0);
 
     const Result noisy = RunScenario(noisy_parameters);
 
     PrintResult("Noisy multi-rate sensors", noisy);
 
-    // Initial tolerances are deliberately more generous.
     assert(noisy.position_error < 0.35);
     assert(noisy.horizontal_speed < 0.35);
     assert(noisy.altitude_error < 0.35);
     assert(noisy.angular_speed < 0.35);
 
-    std::cout << "\nSensor-driven flight tests PASSED\n";
+    // ---------------------------------------------------------
+    // Test 3: Sensor noise robustness benchmark
+    // ---------------------------------------------------------
+
+    constexpr std::array<double, 5> noise_scales{
+        0.0,
+        0.5,
+        1.0,
+        2.0,
+        5.0
+    };
+
+    constexpr int trials = 5;
+
+    std::cout
+        << "\nNoise robustness benchmark\n"
+        << "Scale,MeanFinalError,MeanRMSError,MeanMaxError,"
+        << "MeanAltitudeRMSError\n";
+
+    for (const double scale : noise_scales) {
+        double final_error_sum = 0.0;
+        double rms_error_sum = 0.0;
+        double maximum_error_sum = 0.0;
+        double altitude_rms_sum = 0.0;
+
+        const auto parameters = MakeNoiseParameters(scale);
+
+        for (int trial = 0; trial < trials; ++trial) {
+            const Result result = RunScenario(
+                parameters,
+                static_cast<std::uint32_t>(1234 + trial)
+            );
+
+            assert(std::isfinite(result.position_error));
+            assert(std::isfinite(result.rms_position_error));
+            assert(std::isfinite(result.maximum_position_error));
+            assert(std::isfinite(result.rms_altitude_error));
+
+            final_error_sum += result.position_error;
+            rms_error_sum += result.rms_position_error;
+            maximum_error_sum += result.maximum_position_error;
+            altitude_rms_sum += result.rms_altitude_error;
+        }
+
+        std::cout
+            << scale << ","
+            << final_error_sum / trials << ","
+            << rms_error_sum / trials << ","
+            << maximum_error_sum / trials << ","
+            << altitude_rms_sum / trials << "\n";
+    }
+
+    std::cout
+        << "\nSensor-driven flight tests PASSED\n";
 
     return 0;
 }
+
