@@ -89,6 +89,7 @@ target_compile_options(aerial_sensors
 add_library(aerial_rl STATIC
     src/rl/flight_environment.cpp
     src/rl/observation.cpp
+    src/rl/action_adapter.cpp
 )
 
 target_include_directories(aerial_rl
@@ -926,7 +927,7 @@ if(BUILD_TESTING)
         COMMAND flight_environment_test
     )
 
-        add_executable(rl_observation_test
+    add_executable(rl_observation_test
         tests/rl_observation_test.cpp
     )
 
@@ -943,4 +944,20 @@ if(BUILD_TESTING)
         COMMAND rl_observation_test
     )
 
+    add_executable(rl_action_adapter_test
+        tests/rl_action_adapter_test.cpp
+    )
+
+    target_link_libraries(rl_action_adapter_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(rl_action_adapter_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_action_adapter
+        COMMAND rl_action_adapter_test
+    )
 endif()
