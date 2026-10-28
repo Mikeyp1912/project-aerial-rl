@@ -88,6 +88,7 @@ target_compile_options(aerial_sensors
 # Reinforcement learning environment — headless
 add_library(aerial_rl STATIC
     src/rl/flight_environment.cpp
+    src/rl/observation.cpp
 )
 
 target_include_directories(aerial_rl
@@ -923,6 +924,23 @@ if(BUILD_TESTING)
     add_test(
         NAME flight_environment
         COMMAND flight_environment_test
+    )
+
+        add_executable(rl_observation_test
+        tests/rl_observation_test.cpp
+    )
+
+    target_link_libraries(rl_observation_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(rl_observation_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_observation
+        COMMAND rl_observation_test
     )
 
 endif()
