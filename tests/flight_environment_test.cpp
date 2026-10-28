@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 #include "aerial/rl/flight_environment.hpp"
+#include "aerial/rl/observation.hpp"
 
 int main()
 {
@@ -18,12 +19,37 @@ int main()
 
     rl::FlightEnvironment environment(parameters);
 
+    // RL observation must match the structured sensor measurements.
+    {
+        const rl::Observation observation =
+            environment.GetRLObservation();
+
+        const rl::Observation expected =
+            rl::MakeObservation(environment.GetObservation());
+
+        for (std::size_t i = 0; i < rl::kObservationSize; ++i) {
+            assert(std::abs(observation[i] - expected[i]) < 1e-12);
+        }
+    }
+
     assert(environment.GetSimulationTime() == 0.0);
     assert(std::abs(environment.GetTrueState().position.z() - 1.0) < 1e-12);
 
     const physics::MotorCommands commands{0.0, 0.0, 0.0, 0.0};
 
     auto result = environment.Step(commands);
+
+    {
+        const rl::Observation observation =
+            environment.GetRLObservation();
+
+        const rl::Observation expected =
+            rl::MakeObservation(result.observation);
+
+        for (std::size_t i = 0; i < rl::kObservationSize; ++i) {
+            assert(std::abs(observation[i] - expected[i]) < 1e-12);
+        }
+    }
 
     assert(!result.terminated);
     assert(!result.truncated);

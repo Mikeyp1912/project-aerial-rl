@@ -5,6 +5,8 @@
 #include <cmath>
 #include <stdexcept>
 
+#include "aerial/rl/observation.hpp"
+
 namespace aerial::rl 
 {
     FlightEnvironment::FlightEnvironment(
@@ -80,6 +82,11 @@ namespace aerial::rl
     const sensors::SensorMeasurements& FlightEnvironment::GetObservation() const
     {
         return sensors_.GetMeasurements();
+    }
+
+    Observation FlightEnvironment::GetRLObservation() const
+    {
+        return MakeObservation(sensors_.GetMeasurements());
     }
 
     const physics::DroneState& FlightEnvironment::GetTrueState() const

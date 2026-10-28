@@ -6,6 +6,7 @@
 
 #include "aerial/physics/simulation_environment.hpp"
 #include "aerial/sensors/sensor_scheduler.hpp"
+#include "aerial/rl/rl_types.hpp"
 
 namespace aerial::rl
 {
@@ -39,6 +40,9 @@ namespace aerial::rl
                     );
 
             const sensors::SensorMeasurements& GetObservation() const;
+
+            // Fixed-size observation for neural-network input
+            Observation GetRLObservation() const;
 
             const physics::DroneState& GetTrueState() const;
 
