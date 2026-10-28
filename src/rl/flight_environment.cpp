@@ -79,6 +79,13 @@ namespace aerial::rl
         return result;
     }
 
+    FlightStepResult FlightEnvironment::StepAction(const Action& action)
+    {
+        const physics::MotorCommands commands = direct_motor_adapter_.Convert(action);
+
+        return Step(commands);
+    }
+
     const sensors::SensorMeasurements& FlightEnvironment::GetObservation() const
     {
         return sensors_.GetMeasurements();

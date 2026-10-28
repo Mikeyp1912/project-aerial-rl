@@ -83,6 +83,60 @@ int main()
     result = environment.Step(commands);
     assert(!result.truncated);
 
+    // Normalized RL actions must advance the environment.
+    {
+        rl::FlightEnvironment environment;
+
+        environment.Reset(42);
+
+        const rl::Action action{-1.0, -1.0, -1.0, -1.0};
+
+        const auto result = environment.StepAction(action);
+
+        assert(std::abs(
+            environment.GetSimulationTime() - (1.0 / 120.0)
+        ) < 1e-12);
+
+        assert(!result.terminated);
+        assert(!result.truncated);
+
+        const auto observation = environment.GetRLObservation();
+
+        for (double value : observation)
+        {
+            assert(std::isfinite(value));
+        }
+    }
+
+    // RL actions must use the same motor commands as the physics API.
+    {
+        rl::FlightEnvironment rl_environment;
+        rl::FlightEnvironment motor_environment;
+
+        rl_environment.Reset(123);
+        motor_environment.Reset(123);
+
+        const rl::Action action{-1.0, -0.5, 0.5, 1.0};
+
+        const physics::MotorCommands commands{
+            0.0, 0.25, 0.75, 1.0
+        };
+
+        rl_environment.StepAction(action);
+        motor_environment.Step(commands);
+
+        const auto& rl_state = rl_environment.GetTrueState();
+        const auto& motor_state = motor_environment.GetTrueState();
+
+        assert(rl_state.position.isApprox(
+            motor_state.position, 1e-12
+        ));
+
+        assert(rl_state.velocity.isApprox(
+            motor_state.velocity, 1e-12
+        ));
+    }
+
     std::cout << "Flight environment tests PASSED\n";
     return 0;
 }

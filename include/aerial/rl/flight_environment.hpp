@@ -7,6 +7,7 @@
 #include "aerial/physics/simulation_environment.hpp"
 #include "aerial/sensors/sensor_scheduler.hpp"
 #include "aerial/rl/rl_types.hpp"
+#include "aerial/rl/action_adapter.hpp"
 
 namespace aerial::rl
 {
@@ -39,6 +40,9 @@ namespace aerial::rl
                     const physics::MotorCommands& commands
                     );
 
+            // Neural-network action interface
+            FlightStepResult StepAction(const Action& action);
+
             const sensors::SensorMeasurements& GetObservation() const;
 
             // Fixed-size observation for neural-network input
@@ -53,6 +57,8 @@ namespace aerial::rl
 
             physics::Simulation simulation_;
             sensors::SensorScheduler sensors_;
+
+            DirectMotorActionAdapter direct_motor_adapter_;
 
             bool episode_finished_ = false;
     };
