@@ -81,9 +81,24 @@ namespace aerial::rl
 
     FlightStepResult FlightEnvironment::StepAction(const Action& action)
     {
-        const physics::MotorCommands commands = direct_motor_adapter_.Convert(action);
+        if (episode_finished_) {
+            throw std::logic_error("Cannot step a finished episode; call Reset()");
+        }
 
-        return Step(commands);
+        switch (parameters_.action_mode) {
+            case ActionMode::DirectMotor:
+                {
+                    return Step(direct_motor_adapter_.Convert(action));
+                }
+
+            case ActionMode::BodyRate:
+            case ActionMode::PIDTargets:
+                {
+                    throw std::logic_error("Selected RL action mode is not implemented yet");
+                }
+        }
+
+        throw std::invalid_argument("Unknown RL action mode");
     }
 
     const sensors::SensorMeasurements& FlightEnvironment::GetObservation() const
@@ -104,5 +119,10 @@ namespace aerial::rl
     double FlightEnvironment::GetSimulationTime() const
     {
         return simulation_.GetSimulationTime();
+    }
+
+    ActionMode FlightEnvironment::GetActionMode() const
+    {
+        return parameters_.action_mode;
     }
 }

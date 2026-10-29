@@ -137,6 +137,97 @@ int main()
         ));
     }
 
+    // Default action mode must be direct motor control.
+    {
+        rl::FlightEnvironment environment;
+
+        assert(environment.GetActionMode() ==
+               rl::ActionMode::DirectMotor);
+    }
+
+    // Explicit direct motor mode must execute normally.
+    {
+        rl::FlightEnvironmentParameters parameters;
+        parameters.action_mode = rl::ActionMode::DirectMotor;
+
+        rl::FlightEnvironment environment(parameters);
+
+        const rl::Action action{-1.0, -1.0, -1.0, -1.0};
+
+        const auto result = environment.StepAction(action);
+
+        assert(!result.terminated);
+        assert(!result.truncated);
+
+        assert(environment.GetSimulationTime() > 0.0);
+    }
+
+    // Body-rate control is configurable but not implemented yet.
+    {
+        rl::FlightEnvironmentParameters parameters;
+        parameters.action_mode = rl::ActionMode::BodyRate;
+
+        rl::FlightEnvironment environment(parameters);
+
+        bool threw = false;
+
+        try
+        {
+            environment.StepAction(rl::Action{});
+        }
+        catch (const std::logic_error&)
+        {
+            threw = true;
+        }
+
+        assert(threw);
+        assert(environment.GetSimulationTime() == 0.0);
+    }
+
+    // PID-target control is configurable but not implemented yet.
+    {
+        rl::FlightEnvironmentParameters parameters;
+        parameters.action_mode = rl::ActionMode::PIDTargets;
+
+        rl::FlightEnvironment environment(parameters);
+
+        bool threw = false;
+
+        try
+        {
+            environment.StepAction(rl::Action{});
+        }
+        catch (const std::logic_error&)
+        {
+            threw = true;
+        }
+
+        assert(threw);
+        assert(environment.GetSimulationTime() == 0.0);
+    }
+
+    // Invalid action modes must be rejected.
+    {
+        rl::FlightEnvironmentParameters parameters;
+        parameters.action_mode = static_cast<rl::ActionMode>(255);
+
+        rl::FlightEnvironment environment(parameters);
+
+        bool threw = false;
+
+        try
+        {
+            environment.StepAction(rl::Action{});
+        }
+        catch (const std::invalid_argument&)
+        {
+            threw = true;
+        }
+
+        assert(threw);
+        assert(environment.GetSimulationTime() == 0.0);
+    }
+
     std::cout << "Flight environment tests PASSED\n";
     return 0;
 }

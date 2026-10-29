@@ -15,6 +15,8 @@ namespace aerial::rl
     {
         double time_step = 1.0 / 120.0;
         double maximum_episode_time = 20.0;
+
+        ActionMode action_mode = ActionMode::DirectMotor;
     };
 
     struct FlightStepResult
@@ -51,6 +53,8 @@ namespace aerial::rl
             const physics::DroneState& GetTrueState() const;
 
             double GetSimulationTime() const;
+
+            ActionMode GetActionMode() const;
 
         private:
             FlightEnvironmentParameters parameters_;
