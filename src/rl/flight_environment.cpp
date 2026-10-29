@@ -26,6 +26,8 @@ namespace aerial::rl
                     );
         }
 
+        ValidateEpisodeTerminationParameters(parameters_.termination);
+
         Reset();
     }
 
@@ -63,25 +65,54 @@ namespace aerial::rl
 
         simulation_.Step(commands, parameters_.time_step);
 
-        sensors_.Update(
-                simulation_.GetDroneState(),
+        const auto& state = simulation_.GetDroneState();
+
+        const bool state_is_finite =
+            state.position.allFinite() &&
+            state.velocity.allFinite() &&
+            state.angular_velocity.allFinite() &&
+            state.orientation.coeffs().allFinite() &&
+            state.orientation.norm() >= 1e-12;
+
+        if (state_is_finite) {
+            sensors_.Update(
+                state,
                 simulation_.GetWorldAcceleration(),
                 simulation_.GetSimulationTime()
-                );
+            );
+        }
 
         FlightStepResult result;
         result.observation = sensors_.GetMeasurements();
 
-        // Reward uses the true physics state, not noisy sensor data
-        result.reward_components = CalculateHoverReward(
-                simulation_.GetDroneState(),
-                parameters_.hover_reward
+        const auto& true_state = simulation_.GetDroneState();
+
+        const auto termination = CheckEpisodeTermination(
+                true_state,
+                parameters_.termination,
+                parameters_.hover_reward.target_position
                 );
 
-        result.reward = result.reward_components.total;
+        result.terminated = termination.terminated;
+        result.termination_reason = termination.reason;
 
-        result.terminated = false;
+        if (termination.reason == TerminationReason::NonFiniteState) {
+            // Do not evaluate the quadratic reward on invalid state data
+            result.reward = parameters_.termination.failure_penalty;
+        }
+        else {
+            result.reward_components = CalculateHoverReward(
+                    true_state,
+                    parameters_.hover_reward
+                    );
 
+            result.reward = result.reward_components.total;
+
+            if (result.terminated) {
+                result.reward += parameters_.termination.failure_penalty;
+            }
+        }
+        
         result.truncated =
             simulation_.GetSimulationTime() + 1e-9 >=
             parameters_.maximum_episode_time;

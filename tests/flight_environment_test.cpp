@@ -323,6 +323,11 @@ int main()
         rl::FlightEnvironmentParameters parameters;
         parameters.action_mode = rl::ActionMode::PIDTargets;
 
+        parameters.termination.minimum_altitude = -100.0;
+        parameters.termination.maximum_altitude = 100.0;
+        parameters.termination.maximum_horizontal_distance = 1000.0;
+        parameters.termination.maximum_tilt_angle = 3.14159265358979323846;
+
         rl::FlightEnvironment positive(parameters);
         rl::FlightEnvironment negative(parameters);
 
@@ -441,8 +446,11 @@ int main()
 
     // Different motor commands should produce different rewards.
     {
-        rl::FlightEnvironment first;
-        rl::FlightEnvironment second;
+        rl::FlightEnvironmentParameters parameters;
+        parameters.termination.minimum_altitude = -100.0;
+
+        rl::FlightEnvironment first(parameters);
+        rl::FlightEnvironment second(parameters);
 
         const physics::MotorCommands stopped{
             0.0, 0.0, 0.0, 0.0
@@ -465,6 +473,55 @@ int main()
         assert(std::isfinite(second_total));
 
         assert(std::abs(first_total - second_total) > 1e-4);
+    }
+
+    // Falling below the configured altitude boundary must terminate.
+    {
+        rl::FlightEnvironmentParameters parameters;
+        parameters.termination.minimum_altitude = 0.95;
+
+        rl::FlightEnvironment environment(parameters);
+
+        const physics::MotorCommands commands{
+            0.0, 0.0, 0.0, 0.0
+        };
+
+        rl::FlightStepResult result;
+
+        for (int i = 0; i < 120; ++i)
+        {
+            result = environment.Step(commands);
+
+            if (result.terminated)
+                break;
+        }
+
+        assert(result.terminated);
+        assert(result.termination_reason ==
+               rl::TerminationReason::MinimumAltitude);
+
+        const auto expected = rl::CalculateHoverReward(
+            environment.GetTrueState(),
+            parameters.hover_reward
+        );
+
+        assert(std::abs(
+            result.reward -
+            (expected.total + parameters.termination.failure_penalty)
+        ) < 1e-10);
+
+        bool threw = false;
+
+        try
+        {
+            environment.Step(commands);
+        }
+        catch (const std::logic_error&)
+        {
+            threw = true;
+        }
+
+        assert(threw);
     }
 
     std::cout << "Flight environment tests PASSED\n";

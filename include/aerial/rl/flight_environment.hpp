@@ -9,6 +9,7 @@
 #include "aerial/rl/rl_types.hpp"
 #include "aerial/rl/action_adapter.hpp"
 #include "aerial/rl/hover_reward.hpp"
+#include "aerial/rl/episode_termination.hpp"
 
 namespace aerial::rl
 {
@@ -24,6 +25,8 @@ namespace aerial::rl
         PIDTargetActionParameters pid_targets;
 
         HoverRewardParameters hover_reward;
+
+        EpisodeTerminationParameters termination;
     };
 
     struct FlightStepResult
@@ -32,6 +35,8 @@ namespace aerial::rl
 
         double reward = 0.0;
         HoverRewardComponents reward_components;
+
+        TerminationReason termination_reason = TerminationReason::None;
 
         bool terminated = false;
         bool truncated = false;
