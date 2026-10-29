@@ -3,6 +3,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+#include <vector>
 
 #include <Eigen/Core>
 
@@ -36,6 +38,14 @@ namespace aerial::rl
             void Initialize(std::uint32_t seed);
 
             std::size_t GetParameterCount() const;
+
+            std::vector<double> GetParameters() const;
+
+            void SetParameters(const std::vector<double>& parameters);
+
+            void SaveParameters(const std::string& path) const;
+
+            void LoadParameters(const std::string& path);
 
         private:
             static HiddenVector ReLU(const HiddenVector& input);

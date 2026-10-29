@@ -5,6 +5,10 @@
 #include <cmath>
 #include <random>
 #include <stdexcept>
+#include <array>
+#include <cstring>
+#include <fstream>
+#include <vector>
 
 namespace aerial::rl
 {
@@ -109,5 +113,178 @@ namespace aerial::rl
                 bias2_.size() +
                 bias3_.size()
                 );
+    }
+
+    std::vector<double> NeuralNetworkPolicy::GetParameters() const
+    {
+        std::vector<double> parameters;
+        parameters.reserve(GetParameterCount());
+
+        const auto append = [&parameters](const auto& matrix)
+        {
+            for (Eigen::Index i = 0; i < matrix.size(); ++i) {
+                parameters.push_back(matrix.data()[i]);
+            }
+        };
+
+        append(weights1_);
+        append(weights2_);
+        append(weights3_);
+
+        append(bias1_);
+        append(bias2_);
+        append(bias3_);
+
+        return parameters;
+    }
+
+    void NeuralNetworkPolicy::SetParameters(
+            const std::vector<double>& parameters
+            )
+    {
+        if (parameters.size() != GetParameterCount()) {
+            throw std::invalid_argument("Incorrect neural network parameter count");
+        }
+
+        for (const double value : parameters) {
+            if (!std::isfinite(value)) {
+                throw std::invalid_argument("Neural network parameters must be finite");
+            }
+        }
+
+        std::size_t offset = 0;
+
+        const auto read = [&parameters, &offset](auto& matrix)
+        {
+            for (Eigen::Index i = 0; i < matrix.size(); ++i) {
+                matrix.data()[i] = parameters[offset++];
+            }
+        };
+
+        read(weights1_);
+        read(weights2_);
+        read(weights3_);
+
+        read(bias1_);
+        read(bias2_);
+        read(bias3_);
+    }
+
+    void NeuralNetworkPolicy::SaveParameters(
+            const std::string& path
+            ) const
+    {
+        const std::vector<double> parameters = GetParameters();
+
+        std::ofstream file(path, std::ios::binary | std::ios::trunc);
+
+        if (!file) {
+            throw std::runtime_error("Failed to open neural network checkpoint for writing");
+        }
+
+        // Format v1:
+        // 8-byte magic, uint32 version, uint32 count,
+        // followed by count native-endian IEEE-754 doubles.
+        constexpr std::array<char, 8> magic{
+            'A', 'E', 'R', 'I', 'A', 'L', 'N', 'N'
+        };
+
+        constexpr std::uint32_t version = 1;
+
+        const auto count = static_cast<std::uint32_t>(parameters.size());
+
+        file.write(magic.data(), magic.size());
+
+        file.write(
+                reinterpret_cast<const char*>(&version),
+                sizeof(count)
+                );
+
+        file.write(
+                reinterpret_cast<const char*>(&count),
+                sizeof(count)
+                );
+
+        file.write(
+                reinterpret_cast<const char*>(parameters.data()),
+                static_cast<std::streamsize>(
+                    parameters.size() * sizeof(double)
+                    )
+                );
+
+        if (!file) {
+            throw std::runtime_error("Failed to write neural network checkpoint");
+        }
+    }
+
+    void NeuralNetworkPolicy::LoadParameters(
+            const std::string& path
+            )
+    {
+        std::ifstream file(path, std::ios::binary | std::ios::ate);
+
+        if (!file) {
+            throw std::runtime_error("Failed to open neural network checkpoint");
+        }
+
+        const std::streamoff file_size = file.tellg();
+
+        constexpr std::array<char, 8> expected_magic{
+            'A', 'E', 'R', 'I', 'A', 'L', 'N', 'N'
+        };
+
+        constexpr std::uint32_t expected_version = 1;
+
+        const std::streamoff expected_size =
+            static_cast<std::streamoff>(
+                    expected_magic.size() +
+                    2 * sizeof(std::uint32_t) +
+                    GetParameterCount() * sizeof(double)
+                    );
+
+        if (file_size != expected_size) {
+            throw std::runtime_error("Invalid neural network checkpoint size");
+        }
+
+        file.seekg(0, std::ios::beg);
+
+        std::array<char, 8> magic{};
+        std::uint32_t version = 0;
+        std::uint32_t count = 0;
+
+        file.read(magic.data(), magic.size());
+
+        file.read(
+                reinterpret_cast<char*>(&version),
+                sizeof(version)
+                );
+
+        file.read(
+                reinterpret_cast<char*>(&count),
+                sizeof(count)
+                );
+
+        if (!file ||
+            magic != expected_magic ||
+            version != expected_version ||
+            count != GetParameterCount()) {
+            throw std::runtime_error("Invalid or incompatible neural network checkpoint");
+        }
+
+        std::vector<double> parameters(count);
+
+        file.read(
+                reinterpret_cast<char*>(parameters.data()),
+                static_cast<std::streamsize>(
+                    parameters.size() * sizeof(double)
+                    )
+                );
+
+        if (!file) {
+            throw std::runtime_error("Failed to read neural network checkpoint");
+        }
+
+        // SetParameters validates everything before modifying the model
+        SetParameters(parameters);
     }
 }
