@@ -90,6 +90,7 @@ add_library(aerial_rl STATIC
     src/rl/flight_environment.cpp
     src/rl/observation.cpp
     src/rl/action_adapter.cpp
+    src/rl/hover_reward.cpp
 )
 
 target_include_directories(aerial_rl
@@ -961,4 +962,27 @@ if(BUILD_TESTING)
         NAME rl_action_adapter
         COMMAND rl_action_adapter_test
     )
+
+    add_executable(rl_hover_reward_test
+        tests/rl_hover_reward_test.cpp
+    )
+
+    target_link_libraries(rl_hover_reward_test
+        PRIVATE
+            aerial_rl
+    )
+
+    target_compile_options(rl_hover_reward_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_hover_reward
+        COMMAND rl_hover_reward_test
+    )
+
 endif()
