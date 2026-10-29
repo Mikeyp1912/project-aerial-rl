@@ -96,6 +96,7 @@ add_library(aerial_rl STATIC
     src/rl/observation_normalizer.cpp
     src/rl/policy.cpp
     src/rl/policy_runner.cpp
+    src/rl/policy_evaluator.cpp
 )
 
 target_include_directories(aerial_rl
@@ -1066,6 +1067,23 @@ if(BUILD_TESTING)
     add_test(
         NAME rl_policy
         COMMAND rl_policy_test
+    )
+
+    add_executable(rl_policy_evaluator_test
+        tests/rl_policy_evaluator_test.cpp
+    )
+
+    target_link_libraries(rl_policy_evaluator_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(rl_policy_evaluator_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_policy_evaluator
+        COMMAND rl_policy_evaluator_test
     )
 
 endif()
