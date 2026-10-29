@@ -18,7 +18,7 @@ namespace aerial::rl
             );
 
     static_assert(
-            NeuralNetworkPolicy::kOuputSize ==
+            NeuralNetworkPolicy::kOutputSize ==
             static_cast<int>(kActionSize)
             );
 
@@ -96,7 +96,7 @@ namespace aerial::rl
 
         Action action{};
 
-        for (int i = 0; i < kOuputSize; ++i) {
+        for (int i = 0; i < kOutputSize; ++i) {
             action[static_cast<std::size_t>(i)] = output(i);
         }
 
@@ -285,6 +285,153 @@ namespace aerial::rl
         }
 
         // SetParameters validates everything before modifying the model
+        SetParameters(parameters);
+    }
+
+    double NeuralNetworkPolicy::CalculateMSE(
+            const Observation& observation,
+            const Action& target
+            ) const
+    {
+        InputVector input;
+        OutputVector expected;
+
+        for (int i = 0; i < kInputSize; ++i) {
+            const double value = observation[static_cast<std::size_t>(i)];
+
+            if (!std::isfinite(value)) {
+                throw std::invalid_argument("Observation must contain finite values");
+            }
+
+            input(i) = value;
+        }
+
+        for (int i = 0; i < kOutputSize; ++i) {
+            const double value = target[static_cast<std::size_t>(i)];
+
+            if (!std::isfinite(value) || value < -1.0 || value > 1.0) {
+                throw std::invalid_argument("Target action must be finite and in [-1, 1]");
+            }
+
+            expected(i) = value;
+        }
+
+        const HiddenVector z1 = weights1_ * input + bias1_;
+        const HiddenVector a1 = ReLU(z1);
+
+        const HiddenVector z2 = weights2_ * a1 + bias2_;
+        const HiddenVector a2 = ReLU(z2);
+
+        const OutputVector output = (weights3_ * a2 + bias3_).array().tanh().matrix();
+
+        return (output - expected).squaredNorm() / static_cast<double>(kOutputSize);
+    }
+
+    std::vector<double> NeuralNetworkPolicy::CalculateMSEGradient(
+            const Observation& observation,
+            const Action& target
+            ) const
+    {
+        InputVector input;
+        OutputVector expected;
+
+        for (int i = 0; i < kInputSize; ++i) {
+            const double value = observation[static_cast<std::size_t>(i)];
+
+            if (!std::isfinite(value)) {
+                throw std::invalid_argument("Observation must contain finite values");
+            }
+
+            input(i) = value;
+        }
+
+        for (int i = 0; i < kOutputSize; ++i) {
+            const double value = target[static_cast<std::size_t>(i)];
+
+            if (!std::isfinite(value) || value < -1.0 || value > 1.0) {
+                throw std::invalid_argument("Target action must be finite and in [-1, 1]");
+            }
+
+            expected(i) = value;
+        }
+
+        // Forward pass: retain activations for backpropagation
+        const HiddenVector z1 = weights1_ * input + bias1_;
+        const HiddenVector a1 = ReLU(z1);
+
+        const HiddenVector z2 = weights2_ * a1 + bias2_;
+        const HiddenVector a2 = ReLU(z2);
+
+        const OutputVector output = (weights3_ * a2 + bias3_).array().tanh().matrix();
+
+        // dL/dz3:
+        // MSE derivative multiplied by tanh derivative
+        const OutputVector delta3 =
+            ((2.0 / static_cast<double>(kOutputSize)) *
+             (output - expected).array() *
+             (1.0 - output.array().square())).matrix();
+
+        // dL/dz2: propagate through W3 and ReLU
+        const HiddenVector delta2 =
+            ((weights3_.transpose() * delta3).array() *
+             (z2.array() > 0.0).cast<double>()).matrix();
+
+        // dL/dz1: propagate through W2 and ReLU
+        const HiddenVector delta1 =
+            ((weights2_.transpose() * delta2).array() *
+             (z1.array() > 0.0).cast<double>()).matrix();
+
+        // Weight gradients: other products
+        const InputWeights grad_w1 = delta1 * input.transpose();
+        const HiddenWeights grad_w2 = delta2 * a1.transpose();
+        const OutputWeights grad_w3 = delta3 * a2.transpose();
+
+        // Bias gradients
+        const HiddenVector grad_b1 = delta1;
+        const HiddenVector grad_b2 = delta2;
+        const OutputVector grad_b3 = delta3;
+
+        std::vector<double> gradients;
+        gradients.reserve(GetParameterCount());
+
+        // Must match GetParameters() exactly
+        const auto append = [&gradients](const auto& matrix)
+        {
+            for (Eigen::Index i = 0; i < matrix.size(); ++i) {
+                gradients.push_back(matrix.data()[i]);
+            }
+        };
+
+        append(grad_w1);
+        append(grad_w2);
+        append(grad_w3);
+
+        append(grad_b1);
+        append(grad_b2);
+        append(grad_b3);
+
+        return gradients;
+    }
+
+    void NeuralNetworkPolicy::TrainMSE(
+            const Observation& observation,
+            const Action& target,
+            double learning_rate
+            )
+    {
+        if (!std::isfinite(learning_rate) || learning_rate <= 0.0) {
+            throw std::invalid_argument("Learning rate must be finite and positive");
+        }
+
+        const auto gradients = CalculateMSEGradient(observation, target);
+
+        auto parameters = GetParameters();
+
+        for (std::size_t i = 0; i < parameters.size(); ++i) {
+            parameters[i] -= learning_rate * gradients[i];
+        }
+
+        // Validates the updated parameters before applying them
         SetParameters(parameters);
     }
 }

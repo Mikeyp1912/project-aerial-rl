@@ -17,19 +17,19 @@ namespace aerial::rl
         public:
             static constexpr int kInputSize = 16;
             static constexpr int kHiddenSize = 64;
-            static constexpr int kOuputSize = 4;
+            static constexpr int kOutputSize = 4;
 
             using InputVector = Eigen::Matrix<double, kInputSize, 1>;
 
             using HiddenVector = Eigen::Matrix<double, kHiddenSize, 1>;
 
-            using OutputVector = Eigen::Matrix<double, kOuputSize, 1>;
+            using OutputVector = Eigen::Matrix<double, kOutputSize, 1>;
 
             using InputWeights = Eigen::Matrix<double, kHiddenSize, kInputSize>;
 
             using HiddenWeights = Eigen::Matrix<double, kHiddenSize, kHiddenSize>;
 
-            using OutputWeights = Eigen::Matrix<double, kOuputSize, kHiddenSize>;
+            using OutputWeights = Eigen::Matrix<double, kOutputSize, kHiddenSize>;
 
             explicit NeuralNetworkPolicy(std::uint32_t seed = 42);
 
@@ -46,6 +46,25 @@ namespace aerial::rl
             void SaveParameters(const std::string& path) const;
 
             void LoadParameters(const std::string& path);
+
+            // Mean squared error across the four output actions
+            double CalculateMSE(
+                    const Observation& observation,
+                    const Action& target
+                    ) const;
+
+            // Returns gradients in the same order as GetParameters()
+            std::vector<double> CalculateMSEGradient(
+                    const Observation& observation,
+                    const Action& target
+                    ) const;
+
+            // Applies one gradient-descent update
+            void TrainMSE(
+                    const Observation& observation,
+                    const Action& target,
+                    double learning_rate
+                    );
 
         private:
             static HiddenVector ReLU(const HiddenVector& input);

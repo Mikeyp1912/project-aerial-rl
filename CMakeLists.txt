@@ -1138,4 +1138,21 @@ if(BUILD_TESTING)
         COMMAND rl_neural_network_parameters_test
     )
 
+    add_executable(rl_neural_network_gradient_test
+        tests/rl_neural_network_gradient_test.cpp
+    )
+
+    target_link_libraries(rl_neural_network_gradient_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(rl_neural_network_gradient_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_neural_network_gradient
+        COMMAND rl_neural_network_gradient_test
+    )
+
 endif()
