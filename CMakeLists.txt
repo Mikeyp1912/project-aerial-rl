@@ -97,6 +97,7 @@ add_library(aerial_rl STATIC
     src/rl/policy.cpp
     src/rl/policy_runner.cpp
     src/rl/policy_evaluator.cpp
+    src/rl/neural_network_policy.cpp
 )
 
 target_include_directories(aerial_rl
@@ -1101,6 +1102,23 @@ if(BUILD_TESTING)
     add_test(
         NAME rl_policy_evaluator
         COMMAND rl_policy_evaluator_test
+    )
+
+    add_executable(rl_neural_network_policy_test
+        tests/rl_neural_network_policy_test.cpp
+    )
+
+    target_link_libraries(rl_neural_network_policy_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(rl_neural_network_policy_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_neural_network_policy
+        COMMAND rl_neural_network_policy_test
     )
 
 endif()
