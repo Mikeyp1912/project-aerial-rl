@@ -72,8 +72,14 @@ namespace aerial::rl
         FlightStepResult result;
         result.observation = sensors_.GetMeasurements();
 
-        // Reward and physical termination will be added later
-        result.reward = 0.0;
+        // Reward uses the true physics state, not noisy sensor data
+        result.reward_components = CalculateHoverReward(
+                simulation_.GetDroneState(),
+                parameters_.hover_reward
+                );
+
+        result.reward = result.reward_components.total;
+
         result.terminated = false;
 
         result.truncated =

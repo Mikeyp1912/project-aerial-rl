@@ -8,6 +8,7 @@
 #include "aerial/sensors/sensor_scheduler.hpp"
 #include "aerial/rl/rl_types.hpp"
 #include "aerial/rl/action_adapter.hpp"
+#include "aerial/rl/hover_reward.hpp"
 
 namespace aerial::rl
 {
@@ -21,6 +22,8 @@ namespace aerial::rl
         BodyRateActionParameters body_rate;
 
         PIDTargetActionParameters pid_targets;
+
+        HoverRewardParameters hover_reward;
     };
 
     struct FlightStepResult
@@ -28,6 +31,7 @@ namespace aerial::rl
         sensors::SensorMeasurements observation;
 
         double reward = 0.0;
+        HoverRewardComponents reward_components;
 
         bool terminated = false;
         bool truncated = false;

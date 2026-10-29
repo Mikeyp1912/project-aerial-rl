@@ -53,7 +53,16 @@ int main()
 
     assert(!result.terminated);
     assert(!result.truncated);
-    assert(result.reward == 0.0);
+    const auto expected_reward = rl::CalculateHoverReward(
+        environment.GetTrueState(),
+        parameters.hover_reward
+    );
+
+    assert(std::abs(result.reward - expected_reward.total) < 1e-12);
+    assert(std::abs(
+        result.reward_components.total - result.reward
+    ) < 1e-12);
+
     assert(std::abs(
         environment.GetSimulationTime() - parameters.time_step
     ) < 1e-12);
@@ -373,6 +382,89 @@ int main()
         }
 
         assert(threw);
+    }
+
+    // Environment must use its configured reward parameters.
+    {
+        rl::FlightEnvironmentParameters parameters;
+        parameters.hover_reward.alive_reward = 2.5;
+        parameters.hover_reward.position_weight = 3.0;
+        parameters.hover_reward.velocity_weight = 0.4;
+
+        rl::FlightEnvironment environment(parameters);
+
+        const physics::MotorCommands commands{
+            0.0, 0.0, 0.0, 0.0
+        };
+
+        const auto result = environment.Step(commands);
+
+        const auto expected = rl::CalculateHoverReward(
+            environment.GetTrueState(),
+            parameters.hover_reward
+        );
+
+        assert(std::abs(result.reward - expected.total) < 1e-12);
+        assert(std::abs(
+            result.reward_components.position - expected.position
+        ) < 1e-12);
+        assert(std::abs(
+            result.reward_components.velocity - expected.velocity
+        ) < 1e-12);
+    }
+
+    // Reward calculation must depend on true state, not observations.
+    {
+        rl::FlightEnvironmentParameters parameters;
+
+        rl::FlightEnvironment first(parameters);
+        rl::FlightEnvironment second(parameters);
+
+        first.Reset(42);
+        second.Reset(123);
+
+        const physics::MotorCommands commands{
+            0.3, 0.4, 0.5, 0.6
+        };
+
+        const auto first_result = first.Step(commands);
+        const auto second_result = second.Step(commands);
+
+        assert(first.GetTrueState().position.isApprox(
+            second.GetTrueState().position, 1e-12
+        ));
+
+        assert(std::abs(
+            first_result.reward - second_result.reward
+        ) < 1e-12);
+    }
+
+    // Different motor commands should produce different rewards.
+    {
+        rl::FlightEnvironment first;
+        rl::FlightEnvironment second;
+
+        const physics::MotorCommands stopped{
+            0.0, 0.0, 0.0, 0.0
+        };
+
+        const physics::MotorCommands powered{
+            0.7, 0.7, 0.7, 0.7
+        };
+
+        double first_total = 0.0;
+        double second_total = 0.0;
+
+        for (int i = 0; i < 60; ++i)
+        {
+            first_total += first.Step(stopped).reward;
+            second_total += second.Step(powered).reward;
+        }
+
+        assert(std::isfinite(first_total));
+        assert(std::isfinite(second_total));
+
+        assert(std::abs(first_total - second_total) > 1e-4);
     }
 
     std::cout << "Flight environment tests PASSED\n";
