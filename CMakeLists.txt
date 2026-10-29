@@ -92,6 +92,7 @@ add_library(aerial_rl STATIC
     src/rl/action_adapter.cpp
     src/rl/hover_reward.cpp
     src/rl/episode_termination.cpp
+    src/rl/episode_statistics.cpp
 )
 
 target_include_directories(aerial_rl
@@ -1006,6 +1007,28 @@ if(BUILD_TESTING)
     add_test(
         NAME rl_episode_termination
         COMMAND rl_episode_termination_test
+    )
+
+    add_executable(rl_episode_statistics_test
+        tests/rl_episode_statistics_test.cpp
+    )
+
+    target_link_libraries(rl_episode_statistics_test
+        PRIVATE
+            aerial_rl
+    )
+
+    target_compile_options(rl_episode_statistics_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_episode_statistics
+        COMMAND rl_episode_statistics_test
     )
 
 endif()

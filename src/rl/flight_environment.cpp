@@ -40,6 +40,8 @@ namespace aerial::rl
 
         episode_finished_ = false;
 
+        statistics_tracker_.Reset();
+
         sensors_.Update(
                 simulation_.GetDroneState(),
                 simulation_.GetWorldAcceleration(),
@@ -117,6 +119,16 @@ namespace aerial::rl
             simulation_.GetSimulationTime() + 1e-9 >=
             parameters_.maximum_episode_time;
 
+        statistics_tracker_.RecordStep(
+                true_state,
+                parameters_.hover_reward.target_position,
+                result.reward,
+                simulation_.GetSimulationTime(),
+                result.terminated,
+                result.truncated,
+                result.termination_reason
+                );
+
         episode_finished_ = result.terminated || result.truncated;
 
         return result;
@@ -180,5 +192,10 @@ namespace aerial::rl
     ActionMode FlightEnvironment::GetActionMode() const
     {
         return parameters_.action_mode;
+    }
+
+    const EpisodeStatistics& FlightEnvironment::GetEpisodeStatistics() const
+    {
+        return statistics_tracker_.GetStatistics();
     }
 }

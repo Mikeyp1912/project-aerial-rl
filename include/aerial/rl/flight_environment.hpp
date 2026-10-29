@@ -10,6 +10,7 @@
 #include "aerial/rl/action_adapter.hpp"
 #include "aerial/rl/hover_reward.hpp"
 #include "aerial/rl/episode_termination.hpp"
+#include "aerial/rl/episode_statistics.hpp"
 
 namespace aerial::rl
 {
@@ -69,6 +70,8 @@ namespace aerial::rl
 
             ActionMode GetActionMode() const;
 
+            const EpisodeStatistics& GetEpisodeStatistics() const;
+
         private:
             FlightEnvironmentParameters parameters_;
 
@@ -80,6 +83,8 @@ namespace aerial::rl
             BodyRateActionAdapter body_rate_adapter_;
 
             PIDTargetActionAdapter pid_target_adapter_;
+
+            EpisodeStatisticsTracker statistics_tracker_;
 
             bool episode_finished_ = false;
     };
