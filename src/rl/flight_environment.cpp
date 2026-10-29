@@ -28,6 +28,8 @@ namespace aerial::rl
 
         ValidateEpisodeTerminationParameters(parameters_.termination);
 
+        ValidateObservationNormalizationParameters(parameters_.observation_normalization);
+
         Reset();
     }
 
@@ -197,5 +199,13 @@ namespace aerial::rl
     const EpisodeStatistics& FlightEnvironment::GetEpisodeStatistics() const
     {
         return statistics_tracker_.GetStatistics();
+    }
+
+    Observation FlightEnvironment::GetNormalizedRLObservation() const
+    {
+        return NormalizeObservation(
+                GetRLObservation(),
+                parameters_.observation_normalization
+                );
     }
 }

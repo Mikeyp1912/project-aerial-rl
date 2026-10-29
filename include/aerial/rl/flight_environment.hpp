@@ -11,6 +11,7 @@
 #include "aerial/rl/hover_reward.hpp"
 #include "aerial/rl/episode_termination.hpp"
 #include "aerial/rl/episode_statistics.hpp"
+#include "aerial/rl/observation_normalizer.hpp"
 
 namespace aerial::rl
 {
@@ -28,6 +29,8 @@ namespace aerial::rl
         HoverRewardParameters hover_reward;
 
         EpisodeTerminationParameters termination;
+
+        ObservationNormalizationParameters observation_normalization;
     };
 
     struct FlightStepResult
@@ -71,6 +74,8 @@ namespace aerial::rl
             ActionMode GetActionMode() const;
 
             const EpisodeStatistics& GetEpisodeStatistics() const;
+
+            Observation GetNormalizedRLObservation() const;
 
         private:
             FlightEnvironmentParameters parameters_;
