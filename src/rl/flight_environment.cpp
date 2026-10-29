@@ -13,7 +13,8 @@ namespace aerial::rl
             const FlightEnvironmentParameters& parameters
             )
         :
-            parameters_(parameters)
+            parameters_(parameters),
+            body_rate_adapter_(parameters.body_rate)
     {
         if (!std::isfinite(parameters_.time_step) ||
             parameters_.time_step <= 0.0 ||
@@ -31,6 +32,8 @@ namespace aerial::rl
     {
         simulation_.Reset();
         sensors_.Reset(seed);
+
+        body_rate_adapter_.Reset();
 
         episode_finished_ = false;
 
@@ -92,9 +95,17 @@ namespace aerial::rl
                 }
 
             case ActionMode::BodyRate:
+                {
+                    return Step(body_rate_adapter_.Convert(
+                                action,
+                                sensors_.GetMeasurements(),
+                                simulation_.GetParameters(),
+                                parameters_.time_step
+                                ));
+                }
             case ActionMode::PIDTargets:
                 {
-                    throw std::logic_error("Selected RL action mode is not implemented yet");
+                    throw std::logic_error("PID-target action mode is not implemented yet");
                 }
         }
 

@@ -101,6 +101,7 @@ target_link_libraries(aerial_rl
     PUBLIC
         aerial_physics
         aerial_sensors
+        aerial_control
 )
 
 target_compile_options(aerial_rl

@@ -17,6 +17,8 @@ namespace aerial::rl
         double maximum_episode_time = 20.0;
 
         ActionMode action_mode = ActionMode::DirectMotor;
+
+        BodyRateActionParameters body_rate;
     };
 
     struct FlightStepResult
@@ -63,6 +65,8 @@ namespace aerial::rl
             sensors::SensorScheduler sensors_;
 
             DirectMotorActionAdapter direct_motor_adapter_;
+
+            BodyRateActionAdapter body_rate_adapter_;
 
             bool episode_finished_ = false;
     };

@@ -162,26 +162,58 @@ int main()
         assert(environment.GetSimulationTime() > 0.0);
     }
 
-    // Body-rate control is configurable but not implemented yet.
+    // Body-rate actions must advance the simulation.
     {
         rl::FlightEnvironmentParameters parameters;
         parameters.action_mode = rl::ActionMode::BodyRate;
 
         rl::FlightEnvironment environment(parameters);
 
-        bool threw = false;
+        const rl::Action action{0.0, 0.0, 0.0, 0.0};
 
-        try
-        {
-            environment.StepAction(rl::Action{});
-        }
-        catch (const std::logic_error&)
-        {
-            threw = true;
-        }
+        const auto result = environment.StepAction(action);
 
-        assert(threw);
-        assert(environment.GetSimulationTime() == 0.0);
+        assert(!result.terminated);
+        assert(!result.truncated);
+
+        assert(std::abs(
+            environment.GetSimulationTime() - parameters.time_step
+        ) < 1e-12);
+
+        for (double value : environment.GetRLObservation())
+        {
+            assert(std::isfinite(value));
+        }
+    }
+
+    // Reset must restore deterministic body-rate behaviour.
+    {
+        rl::FlightEnvironmentParameters parameters;
+        parameters.action_mode = rl::ActionMode::BodyRate;
+
+        rl::FlightEnvironment environment(parameters);
+
+        const rl::Action action{0.2, -0.1, 0.15, 0.0};
+
+        environment.Reset(123);
+        environment.StepAction(action);
+
+        const auto first_position =
+            environment.GetTrueState().position.eval();
+
+        const auto first_velocity =
+            environment.GetTrueState().velocity.eval();
+
+        environment.Reset(123);
+        environment.StepAction(action);
+
+        assert(environment.GetTrueState().position.isApprox(
+            first_position, 1e-12
+        ));
+
+        assert(environment.GetTrueState().velocity.isApprox(
+            first_velocity, 1e-12
+        ));
     }
 
     // PID-target control is configurable but not implemented yet.
