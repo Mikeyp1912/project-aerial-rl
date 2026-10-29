@@ -192,6 +192,23 @@ target_compile_options(benchmark_simulation
         -Wpedantic
 )
 
+# Headless RL policy benchmark
+add_executable(benchmark_rl_policies
+    apps/benchmark_rl_policies.cpp
+)
+
+target_link_libraries(benchmark_rl_policies
+    PRIVATE
+        aerial_rl
+)
+
+target_compile_options(benchmark_rl_policies
+    PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+)
+
 # Tests
 include(CTest)
 
