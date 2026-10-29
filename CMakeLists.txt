@@ -94,6 +94,8 @@ add_library(aerial_rl STATIC
     src/rl/episode_termination.cpp
     src/rl/episode_statistics.cpp
     src/rl/observation_normalizer.cpp
+    src/rl/policy.cpp
+    src/rl/policy_runner.cpp
 )
 
 target_include_directories(aerial_rl
@@ -1047,6 +1049,23 @@ if(BUILD_TESTING)
     add_test(
         NAME rl_observation_normalizer
         COMMAND rl_observation_normalizer_test
+    )
+
+    add_executable(rl_policy_test
+        tests/rl_policy_test.cpp
+    )
+
+    target_link_libraries(rl_policy_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(rl_policy_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_policy
+        COMMAND rl_policy_test
     )
 
 endif()
