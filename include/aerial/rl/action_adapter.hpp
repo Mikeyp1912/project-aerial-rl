@@ -7,6 +7,10 @@
 #include "aerial/control/rate_controller.hpp"
 #include "aerial/physics/drone_parameters.hpp"
 #include "aerial/sensors/sensor_model.hpp"
+#include "aerial/control/altitude_controller.hpp"
+#include "aerial/control/horizontal_position_controller.hpp"
+#include "aerial/control/horizontal_velocity_controller.hpp"
+#include "aerial/control/flight_controller.hpp"
 
 namespace aerial::rl
 {
@@ -49,5 +53,45 @@ namespace aerial::rl
         private:
             BodyRateActionParameters parameters_;
             control::RateControllerState controller_state_;
+    };
+
+    struct PIDTargetActionParameters
+    {
+        // Maximum XY displacement relative to the episode origin (m)
+        double maximum_horizontal_offset = 5.0;
+
+        // Absolute altitude target range (m)
+        double minimum_altitude = 0.5;
+        double maximum_altitude = 5.0;
+
+        control::HorizontalPositionControllerParameters position;
+        control::HorizontalVelocityControllerParameters velocity;
+        control::AltitudeControllerParameters altitude;
+        control::FlightControllerParameters flight;
+    };
+
+    class PIDTargetActionAdapter
+    {
+        public:
+            explicit PIDTargetActionAdapter(
+                    const PIDTargetActionParameters& parameters = {}
+                    );
+
+            void Reset(const sensors::SensorMeasurements& measurements);
+
+            physics::MotorCommands Convert(
+                    const Action& action,
+                    const sensors::SensorMeasurements& measurements,
+                    const physics::DroneParameters& drone_parameters,
+                    double dt
+                    );
+
+        private:
+            PIDTargetActionParameters parameters_;
+            control::FlightControllerState controller_state_;
+
+            Eigen::Vector2d episode_origin_ = Eigen::Vector2d::Zero();
+
+            bool initialized_ = false;
     };
 }

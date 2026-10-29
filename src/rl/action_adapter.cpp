@@ -98,4 +98,154 @@ namespace aerial::rl
                 body_torque
                 ).commands;
     }
+
+    PIDTargetActionAdapter::PIDTargetActionAdapter(
+            const PIDTargetActionParameters& parameters
+            )
+        :
+            parameters_(parameters)
+    {
+        if (!std::isfinite(parameters_.maximum_horizontal_offset) ||
+            parameters_.maximum_horizontal_offset <= 0.0 ||
+            !std::isfinite(parameters_.minimum_altitude) ||
+            !std::isfinite(parameters_.maximum_altitude) ||
+            parameters_.minimum_altitude < 0.0 ||
+            parameters_.maximum_altitude <= parameters_.minimum_altitude)
+        {
+            throw std::invalid_argument(
+                "Invalid PID-target action parameters"
+            );
+        }
+    }
+
+    void PIDTargetActionAdapter::Reset(
+            const sensors::SensorMeasurements& measurements
+            )
+    {
+        if (!measurements.position.allFinite())
+        {
+            throw std::invalid_argument("Invalid intial position measurement");
+        }
+
+        episode_origin_ = measurements.position.head<2>();
+
+        control::ResetFlightController(controller_state_);
+
+        initialized_ = true;
+    }
+
+    physics::MotorCommands PIDTargetActionAdapter::Convert(
+            const Action& action,
+            const sensors::SensorMeasurements& measurements,
+            const physics::DroneParameters& drone_parameters,
+            double dt
+            )
+    {
+        if (!initialized_) {
+            throw std::logic_error("PID-target adapter must be reset before use");
+        }
+
+        for (double value : action) {
+            if (!std::isfinite(value)) {
+                throw std::invalid_argument("RL action values must be finite");
+            }
+        }
+
+        if (!std::isfinite(dt) || dt <= 0.0) {
+            throw std::invalid_argument("Invalid controller time step");
+        }
+
+        if (!measurements.position.allFinite() ||
+            !measurements.velocity.allFinite() ||
+            !measurements.angular_velocity.allFinite() ||
+            !measurements.orientation.coeffs().allFinite()) {
+            throw std::invalid_argument(
+                "Invalid sensor measurements"
+            );
+        }
+
+        const Eigen::Vector2d target_position =
+            episode_origin_ +
+            parameters_.maximum_horizontal_offset *
+            Eigen::Vector2d(
+                    std::clamp(action[0], -1.0, 1.0),
+                    std::clamp(action[1], -1.0, 1.0)
+                    );
+
+        const double altitude_fraction =
+            0.5 * (std::clamp(action[2], -1.0, 1.0) + 1.0);
+
+        const double target_altitude =
+            parameters_.minimum_altitude +
+            altitude_fraction *
+            (parameters_.maximum_altitude -
+             parameters_.minimum_altitude);
+
+        constexpr double pi = 3.14159265358979323846;
+
+        const double target_yaw =
+            std::clamp(action[3], -1.0, 1.0) * pi;
+
+        // contruct a state estimate exclusively from sensors
+        physics::DroneState estimated_state;
+
+        estimated_state.position = measurements.position;
+        estimated_state.velocity = measurements.velocity;
+        estimated_state.orientation = measurements.orientation;
+        estimated_state.angular_velocity = measurements.angular_velocity;
+
+        // Position -> desired horizontal velocity
+        const auto position_output =
+            control::UpdateHorizontalPositionController(
+                    estimated_state,
+                    target_position,
+                    parameters_.position
+                    );
+
+        // Horizontal velocity -> desired roll and pitch
+        const auto velocity_output =
+            control::UpdateHorizontalVelocityController(
+                    estimated_state,
+                    position_output.desired_velocity,
+                    target_yaw,
+                    parameters_.velocity
+                    );
+
+        // Altitude -> collective thrust
+        const auto altitude_output =
+            control::UpdateAltitudeController(
+                    estimated_state,
+                    drone_parameters,
+                    target_altitude,
+                    parameters_.altitude
+                    );
+
+        // Desired roll, pitch and yaw -> target orientation
+        const Eigen::Quaterniond target_orientation =
+            Eigen::AngleAxisd(
+                    target_yaw, Eigen::Vector3d::UnitZ()
+                    ) *
+            Eigen::AngleAxisd(
+                    velocity_output.target_pitch,
+                    Eigen::Vector3d::UnitY()
+                    ) *
+            Eigen::AngleAxisd(
+                    velocity_output.target_roll,
+                    Eigen::Vector3d::UnitX()
+                    );
+
+        // Attitude -> body rates -> body torque -> motors
+        const auto flight_output =
+            control::UpdateFlightController(
+                    estimated_state,
+                    drone_parameters,
+                    target_orientation,
+                    altitude_output.collective_thrust,
+                    dt,
+                    parameters_.flight,
+                    controller_state_
+                    );
+
+        return flight_output.motor_commands;
+    }
 }

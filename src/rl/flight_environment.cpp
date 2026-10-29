@@ -14,7 +14,8 @@ namespace aerial::rl
             )
         :
             parameters_(parameters),
-            body_rate_adapter_(parameters.body_rate)
+            body_rate_adapter_(parameters.body_rate),
+            pid_target_adapter_(parameters.pid_targets)
     {
         if (!std::isfinite(parameters_.time_step) ||
             parameters_.time_step <= 0.0 ||
@@ -42,6 +43,8 @@ namespace aerial::rl
                 simulation_.GetWorldAcceleration(),
                 simulation_.GetSimulationTime()
                 );
+
+        pid_target_adapter_.Reset(sensors_.GetMeasurements());
     }
 
     FlightStepResult FlightEnvironment::Step(
@@ -105,7 +108,12 @@ namespace aerial::rl
                 }
             case ActionMode::PIDTargets:
                 {
-                    throw std::logic_error("PID-target action mode is not implemented yet");
+                    return Step(pid_target_adapter_.Convert(
+                                action,
+                                sensors_.GetMeasurements(),
+                                simulation_.GetParameters(),
+                                parameters_.time_step
+                                ));
                 }
         }
 

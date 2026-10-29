@@ -216,26 +216,33 @@ int main()
         ));
     }
 
-    // PID-target control is configurable but not implemented yet.
+    // PID-target actions must advance the environment.
     {
         rl::FlightEnvironmentParameters parameters;
         parameters.action_mode = rl::ActionMode::PIDTargets;
 
         rl::FlightEnvironment environment(parameters);
 
-        bool threw = false;
+        const rl::Action action{
+            0.0,  // X target
+            0.0,  // Y target
+            0.0,  // Altitude target
+            0.0   // Yaw target
+        };
 
-        try
-        {
-            environment.StepAction(rl::Action{});
-        }
-        catch (const std::logic_error&)
-        {
-            threw = true;
-        }
+        const auto result = environment.StepAction(action);
 
-        assert(threw);
-        assert(environment.GetSimulationTime() == 0.0);
+        assert(!result.terminated);
+        assert(!result.truncated);
+
+        assert(std::abs(
+            environment.GetSimulationTime() - parameters.time_step
+        ) < 1e-12);
+
+        for (double value : environment.GetRLObservation())
+        {
+            assert(std::isfinite(value));
+        }
     }
 
     // Invalid action modes must be rejected.
@@ -258,6 +265,114 @@ int main()
 
         assert(threw);
         assert(environment.GetSimulationTime() == 0.0);
+    }
+
+    // Resetting with the same seed must reproduce the same trajectory.
+    {
+        rl::FlightEnvironmentParameters parameters;
+        parameters.action_mode = rl::ActionMode::PIDTargets;
+
+        rl::FlightEnvironment environment(parameters);
+
+        const rl::Action action{0.2, -0.1, -0.4, 0.15};
+
+        environment.Reset(123);
+
+        for (int i = 0; i < 60; ++i)
+        {
+            environment.StepAction(action);
+        }
+
+        const Eigen::Vector3d first_position =
+            environment.GetTrueState().position;
+
+        const Eigen::Vector3d first_velocity =
+            environment.GetTrueState().velocity;
+
+        const Eigen::Quaterniond first_orientation =
+            environment.GetTrueState().orientation;
+
+        environment.Reset(123);
+
+        for (int i = 0; i < 60; ++i)
+        {
+            environment.StepAction(action);
+        }
+
+        const auto& state = environment.GetTrueState();
+
+        assert(state.position.isApprox(first_position, 1e-12));
+        assert(state.velocity.isApprox(first_velocity, 1e-12));
+
+        assert(state.orientation.coeffs().isApprox(
+            first_orientation.coeffs(), 1e-12
+        ));
+    }
+
+    // Opposite horizontal targets should produce different motion.
+    {
+        rl::FlightEnvironmentParameters parameters;
+        parameters.action_mode = rl::ActionMode::PIDTargets;
+
+        rl::FlightEnvironment positive(parameters);
+        rl::FlightEnvironment negative(parameters);
+
+        positive.Reset(42);
+        negative.Reset(42);
+
+        const rl::Action positive_action{0.5, 0.0, -0.4, 0.0};
+        const rl::Action negative_action{-0.5, 0.0, -0.4, 0.0};
+
+        for (int i = 0; i < 120; ++i)
+        {
+            positive.StepAction(positive_action);
+            negative.StepAction(negative_action);
+        }
+
+        const double positive_x =
+            positive.GetTrueState().position.x();
+
+        const double negative_x =
+            negative.GetTrueState().position.x();
+
+        assert(std::isfinite(positive_x));
+        assert(std::isfinite(negative_x));
+
+        assert(std::abs(positive_x - negative_x) > 1e-4);
+    }
+
+    // PID-target mode must respect episode truncation.
+    {
+        rl::FlightEnvironmentParameters parameters;
+        parameters.action_mode = rl::ActionMode::PIDTargets;
+        parameters.maximum_episode_time = 0.1;
+
+        rl::FlightEnvironment environment(parameters);
+
+        const rl::Action action{0.0, 0.0, -0.5, 0.0};
+
+        rl::FlightStepResult result;
+
+        for (int i = 0; i < 12; ++i)
+        {
+            result = environment.StepAction(action);
+        }
+
+        assert(result.truncated);
+        assert(!result.terminated);
+
+        bool threw = false;
+
+        try
+        {
+            environment.StepAction(action);
+        }
+        catch (const std::logic_error&)
+        {
+            threw = true;
+        }
+
+        assert(threw);
     }
 
     std::cout << "Flight environment tests PASSED\n";

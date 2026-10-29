@@ -19,6 +19,8 @@ namespace aerial::rl
         ActionMode action_mode = ActionMode::DirectMotor;
 
         BodyRateActionParameters body_rate;
+
+        PIDTargetActionParameters pid_targets;
     };
 
     struct FlightStepResult
@@ -67,6 +69,8 @@ namespace aerial::rl
             DirectMotorActionAdapter direct_motor_adapter_;
 
             BodyRateActionAdapter body_rate_adapter_;
+
+            PIDTargetActionAdapter pid_target_adapter_;
 
             bool episode_finished_ = false;
     };
