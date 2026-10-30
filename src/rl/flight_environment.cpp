@@ -4,7 +4,9 @@
 
 #include <cmath>
 #include <stdexcept>
+#include <random>
 
+#include "aerial/physics/drone_state.hpp"
 #include "aerial/rl/observation.hpp"
 
 namespace aerial::rl 
@@ -30,27 +32,71 @@ namespace aerial::rl
 
         ValidateObservationNormalizationParameters(parameters_.observation_normalization);
 
+        const auto& randomization = parameters_.initial_state_randomization;
+
+        if (!randomization.maximum_position_offset.allFinite() ||
+            !randomization.maximum_velocity.allFinite() ||
+            (randomization.maximum_position_offset.array() < 0.0).any() ||
+            (randomization.maximum_velocity.array() < 0.0).any()) {
+            throw std::invalid_argument(
+                "Invalid initial-state randomization parameters"
+            );
+        }
+
         Reset();
     }
 
+    
+
     void FlightEnvironment::Reset(std::uint32_t seed)
     {
-        simulation_.Reset();
-        sensors_.Reset(seed);
+        const auto& randomization =
+            parameters_.initial_state_randomization;
 
+        if (randomization.enabled) {
+            std::mt19937 generator(seed);
+
+            std::uniform_real_distribution<double> distribution(
+                -1.0, 1.0
+            );
+
+            physics::DroneState initial_state;
+
+            initial_state.position = Eigen::Vector3d(
+                0.0, 0.0, 1.0
+            );
+
+            for (int axis = 0; axis < 3; ++axis) {
+                initial_state.position[axis] +=
+                    distribution(generator) *
+                    randomization.maximum_position_offset[axis];
+
+                initial_state.velocity[axis] =
+                    distribution(generator) *
+                    randomization.maximum_velocity[axis];
+            }
+
+            simulation_.Reset(initial_state);
+        }
+        else {
+            simulation_.Reset();
+        }
+
+        sensors_.Reset(seed);
         body_rate_adapter_.Reset();
 
         episode_finished_ = false;
-
         statistics_tracker_.Reset();
 
         sensors_.Update(
-                simulation_.GetDroneState(),
-                simulation_.GetWorldAcceleration(),
-                simulation_.GetSimulationTime()
-                );
+            simulation_.GetDroneState(),
+            simulation_.GetWorldAcceleration(),
+            simulation_.GetSimulationTime()
+        );
 
-        pid_target_adapter_.Reset(sensors_.GetMeasurements());
+        pid_target_adapter_.Reset(
+            sensors_.GetMeasurements()
+        );
     }
 
     FlightStepResult FlightEnvironment::Step(

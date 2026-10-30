@@ -4,6 +4,8 @@
 
 #include <cstdint>
 
+#include <Eigen/Core>
+
 #include "aerial/physics/simulation_environment.hpp"
 #include "aerial/sensors/sensor_scheduler.hpp"
 #include "aerial/rl/rl_types.hpp"
@@ -15,6 +17,19 @@
 
 namespace aerial::rl
 {
+    struct InitialStateRandomizationParameters
+    {
+        bool enabled = false;
+
+        Eigen::Vector3d maximum_position_offset{
+            0.5, 0.5, 0.2
+        };
+
+        Eigen::Vector3d maximum_velocity{
+            0.2, 0.2, 0.0
+        };
+    };
+
     struct FlightEnvironmentParameters
     {
         double time_step = 1.0 / 120.0;
@@ -31,6 +46,8 @@ namespace aerial::rl
         EpisodeTerminationParameters termination;
 
         ObservationNormalizationParameters observation_normalization;
+
+        InitialStateRandomizationParameters initial_state_randomization;
     };
 
     struct FlightStepResult

@@ -1249,4 +1249,21 @@ if(BUILD_TESTING)
         COMMAND rl_imitation_dataset_test
     )
 
+    add_executable(rl_initial_state_randomization_test
+        tests/rl_initial_state_randomization_test.cpp
+    )
+
+    target_link_libraries(rl_initial_state_randomization_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(rl_initial_state_randomization_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_initial_state_randomization
+        COMMAND rl_initial_state_randomization_test
+    )
+
 endif()
