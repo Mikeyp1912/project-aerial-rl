@@ -26,7 +26,11 @@ namespace
                 {0.5, 0.5, 0.2},
             std::array<double, 3> maximum_velocity =
                 {0.2, 0.2, 0.0},
-            aerial::rl::PIDTargetReference pid_target_reference = aerial::rl::PIDTargetReference::EpisodeRelative
+            aerial::rl::PIDTargetReference pid_target_reference =
+                aerial::rl::PIDTargetReference::EpisodeRelative,
+            double maximum_horizontal_offset = 5.0,
+            bool hover_centered_altitude = false,
+            double maximum_altitude_offset = 1.0
         )
         {
             aerial::rl::FlightEnvironmentParameters parameters;
@@ -37,6 +41,15 @@ namespace
             parameters.action_mode = action_mode;
 
             parameters.pid_targets.reference = pid_target_reference;
+
+            parameters.pid_targets.maximum_horizontal_offset =
+                maximum_horizontal_offset;
+
+            parameters.pid_targets.hover_centered_altitude =
+                hover_centered_altitude;
+
+            parameters.pid_targets.maximum_altitude_offset =
+                maximum_altitude_offset;
 
             auto& randomization =
                 parameters.initial_state_randomization;
@@ -180,7 +193,10 @@ PYBIND11_MODULE(aerial_sim, module)
                 bool,
                 std::array<double, 3>,
                 std::array<double, 3>,
-                aerial::rl::PIDTargetReference
+                aerial::rl::PIDTargetReference,
+                double,
+                bool,
+                double
             >(),
             py::arg("time_step") = 1.0 / 120.0,
             py::arg("maximum_episode_time") = 20.0,
@@ -192,7 +208,10 @@ PYBIND11_MODULE(aerial_sim, module)
             py::arg("maximum_velocity") =
                 std::array<double, 3>{0.2, 0.2, 0.0},
             py::arg("pid_target_reference") =
-                aerial::rl::PIDTargetReference::EpisodeRelative
+                aerial::rl::PIDTargetReference::EpisodeRelative,
+            py::arg("maximum_horizontal_offset") = 5.0,
+            py::arg("hover_centered_altitude") = false,
+            py::arg("maximum_altitude_offset") = 1.0
         )
         .def(
             "reset",

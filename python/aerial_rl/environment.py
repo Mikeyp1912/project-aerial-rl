@@ -31,6 +31,9 @@ class AerialDroneEnv(gym.Env):
         pid_target_reference: aerial_sim.PIDTargetReference = (
             aerial_sim.PIDTargetReference.EPISODE_RELATIVE
         ),
+        maximum_horizontal_offset: float = 5.0,
+        hover_centered_altitude: bool = False,
+        maximum_altitude_offset: float = 1.0,
     ):
         super().__init__()
 
@@ -42,6 +45,9 @@ class AerialDroneEnv(gym.Env):
             maximum_position_offset=maximum_position_offset,
             maximum_velocity=maximum_velocity,
             pid_target_reference=pid_target_reference,
+            maximum_horizontal_offset=maximum_horizontal_offset,
+            hover_centered_altitude=hover_centered_altitude,
+            maximum_altitude_offset=maximum_altitude_offset,
         )
 
         self.observation_space = spaces.Box(

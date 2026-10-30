@@ -19,11 +19,17 @@ def evaluate_policy(
     duration: float,
     randomized: bool,
     reference: aerial_sim.PIDTargetReference,
+    horizontal_offset: float = 5.0,
+    hover_centered_altitude: bool = False,
+    altitude_offset: float = 1.0,
 ):
     env = AerialDroneEnv(
         maximum_episode_time=duration,
         randomize_initial_state=randomized,
         pid_target_reference=reference,
+        maximum_horizontal_offset=horizontal_offset,
+        hover_centered_altitude=hover_centered_altitude,
+        maximum_altitude_offset=altitude_offset,
     )
 
     rewards = []
@@ -131,6 +137,23 @@ def main():
         ),
     )
 
+    parser.add_argument(
+        "--horizontal-offset",
+        type=float,
+        default=5.0,
+    )
+
+    parser.add_argument(
+        "--hover-centered-altitude",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--altitude-offset",
+        type=float,
+        default=1.0,
+    )
+
     args = parser.parse_args()
 
     if args.episodes <= 0:
@@ -141,6 +164,12 @@ def main():
 
     if not args.model.is_file():
         parser.error(f"Model not found: {args.model}")
+
+    if args.horizontal_offset <= 0:
+        parser.error("--horizontal-offset must be positive")
+
+    if args.altitude_offset <= 0:
+        parser.error("--altitude-offset must be positive")
 
     model = PPO.load(str(args.model), device="cpu")
 
@@ -180,6 +209,9 @@ def main():
                     args.duration,
                     randomized,
                     reference,
+                    horizontal_offset=args.horizontal_offset,
+                    hover_centered_altitude=args.hover_centered_altitude,
+                    altitude_offset=args.altitude_offset,
                 ),
                 evaluate_policy(
                     "Conservative PPO",
@@ -188,6 +220,9 @@ def main():
                     args.duration,
                     randomized,
                     reference,
+                    horizontal_offset=args.horizontal_offset,
+                    hover_centered_altitude=args.hover_centered_altitude,
+                    altitude_offset=args.altitude_offset,
                 ),
             ]
 

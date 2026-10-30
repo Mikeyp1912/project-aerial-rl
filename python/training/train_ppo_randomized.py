@@ -38,7 +38,11 @@ class CheckpointCallback(BaseCallback):
         return True
 
 
-def make_environment(episode_duration: float):
+def make_environment(
+    episode_duration: float,
+    horizontal_offset: float,
+    altitude_offset: float,
+):
     def initialize():
         env = AerialDroneEnv(
             maximum_episode_time=episode_duration,
@@ -48,6 +52,9 @@ def make_environment(episode_duration: float):
             pid_target_reference=(
                 aerial_sim.PIDTargetReference.WORLD_RELATIVE
             ),
+            maximum_horizontal_offset=horizontal_offset,
+            hover_centered_altitude=True,
+            maximum_altitude_offset=altitude_offset,
         )
         return Monitor(env)
 
@@ -84,6 +91,17 @@ def main():
             "training_results/ppo_hover_randomized"
         ),
     )
+    parser.add_argument(
+        "--horizontal-offset",
+        type=float,
+        default=1.0,
+    )
+
+    parser.add_argument(
+        "--altitude-offset",
+        type=float,
+        default=1.0,
+    )
 
     args = parser.parse_args()
 
@@ -95,6 +113,12 @@ def main():
 
     if args.checkpoint_interval <= 0:
         parser.error("--checkpoint-interval must be positive")
+
+    if args.horizontal_offset <= 0:
+        parser.error("--horizontal-offset must be positive")
+
+    if args.altitude_offset <= 0:
+        parser.error("--altitude-offset must be positive")
 
     args.output.mkdir(parents=True, exist_ok=True)
 
@@ -114,6 +138,9 @@ def main():
         "clip_range": 0.1,
         "gamma": 0.99,
         "gae_lambda": 0.95,
+        "maximum_horizontal_offset": args.horizontal_offset,
+        "hover_centered_altitude": True,
+        "maximum_altitude_offset": args.altitude_offset,
     }
 
     (args.output / "configuration.json").write_text(
@@ -121,7 +148,11 @@ def main():
     )
 
     env = DummyVecEnv([
-        make_environment(args.episode_duration)
+        make_environment(
+            args.episode_duration,
+            args.horizontal_offset,
+            args.altitude_offset,
+        )
     ])
 
     try:
