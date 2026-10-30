@@ -1,4 +1,3 @@
-// /src/python/aerial_sim_bindings.cpp
 
 #include <array>
 #include <cstdint>
@@ -22,7 +21,12 @@ namespace
             double time_step = 1.0 / 120.0,
             double maximum_episode_time = 20.0,
             aerial::rl::ActionMode action_mode =
-                aerial::rl::ActionMode::PIDTargets
+                aerial::rl::ActionMode::PIDTargets,
+            bool randomize_initial_state = false,
+            std::array<double, 3> maximum_position_offset =
+                {0.5, 0.5, 0.2},
+            std::array<double, 3> maximum_velocity =
+                {0.2, 0.2, 0.0}
         )
         {
             aerial::rl::FlightEnvironmentParameters parameters;
@@ -30,8 +34,26 @@ namespace
             parameters.time_step = time_step;
             parameters.maximum_episode_time =
                 maximum_episode_time;
-
             parameters.action_mode = action_mode;
+
+            auto& randomization =
+                parameters.initial_state_randomization;
+
+            randomization.enabled = randomize_initial_state;
+
+            randomization.maximum_position_offset =
+                Eigen::Vector3d(
+                    maximum_position_offset[0],
+                    maximum_position_offset[1],
+                    maximum_position_offset[2]
+                );
+
+            randomization.maximum_velocity =
+                Eigen::Vector3d(
+                    maximum_velocity[0],
+                    maximum_velocity[1],
+                    maximum_velocity[2]
+                );
 
             environment_ =
                 std::make_unique<aerial::rl::FlightEnvironment>(
@@ -68,6 +90,30 @@ namespace
         aerial::rl::Observation GetObservation() const
         {
             return environment_->GetNormalizedRLObservation();
+        }
+
+        std::array<double, 3> GetPosition() const
+        {
+            const auto& position =
+                environment_->GetTrueState().position;
+
+            return {
+                position.x(),
+                position.y(),
+                position.z()
+            };
+        }
+
+        std::array<double, 3> GetVelocity() const
+        {
+            const auto& velocity =
+                environment_->GetTrueState().velocity;
+
+            return {
+                velocity.x(),
+                velocity.y(),
+                velocity.z()
+            };
         }
 
         double GetSimulationTime() const
@@ -115,12 +161,20 @@ PYBIND11_MODULE(aerial_sim, module)
             py::init<
                 double,
                 double,
-                aerial::rl::ActionMode
+                aerial::rl::ActionMode,
+                bool,
+                std::array<double, 3>,
+                std::array<double, 3>
             >(),
             py::arg("time_step") = 1.0 / 120.0,
             py::arg("maximum_episode_time") = 20.0,
             py::arg("action_mode") =
-                aerial::rl::ActionMode::PIDTargets
+                aerial::rl::ActionMode::PIDTargets,
+            py::arg("randomize_initial_state") = false,
+            py::arg("maximum_position_offset") =
+                std::array<double, 3>{0.5, 0.5, 0.2},
+            py::arg("maximum_velocity") =
+                std::array<double, 3>{0.2, 0.2, 0.0}
         )
         .def(
             "reset",
@@ -135,6 +189,14 @@ PYBIND11_MODULE(aerial_sim, module)
         .def(
             "get_observation",
             &PythonFlightEnvironment::GetObservation
+        )
+        .def(
+            "get_position",
+            &PythonFlightEnvironment::GetPosition
+        )
+        .def(
+            "get_velocity",
+            &PythonFlightEnvironment::GetVelocity
         )
         .def(
             "get_simulation_time",

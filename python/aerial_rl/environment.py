@@ -21,6 +21,13 @@ class AerialDroneEnv(gym.Env):
         time_step: float = 1.0 / 120.0,
         maximum_episode_time: float = 10.0,
         action_mode: aerial_sim.ActionMode = aerial_sim.ActionMode.PID_TARGETS,
+        randomize_initial_state: bool = False,
+        maximum_position_offset: tuple[float, float, float] = (
+            0.5, 0.5, 0.2
+        ),
+        maximum_velocity: tuple[float, float, float] = (
+            0.2, 0.2, 0.0
+        ),
     ):
         super().__init__()
 
@@ -28,6 +35,9 @@ class AerialDroneEnv(gym.Env):
             time_step=time_step,
             maximum_episode_time=maximum_episode_time,
             action_mode=action_mode,
+            randomize_initial_state=randomize_initial_state,
+            maximum_position_offset=maximum_position_offset,
+            maximum_velocity=maximum_velocity,
         )
 
         self.observation_space = spaces.Box(
@@ -66,7 +76,16 @@ class AerialDroneEnv(gym.Env):
 
         return (
             np.asarray(observation, dtype=np.float32),
-            {},
+            {
+                "initial_position": np.asarray(
+                    self.simulator.get_position(),
+                    dtype=np.float64,
+                ),
+                "initial_velocity": np.asarray(
+                    self.simulator.get_velocity(),
+                    dtype=np.float64,
+                ),
+            },
         )
 
     def step(
