@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(FetchContent)
 
@@ -225,6 +226,31 @@ target_link_libraries(benchmark_imitation_learning
 
 target_compile_options(benchmark_imitation_learning
     PRIVATE -Wall -Wextra -Wpedantic
+)
+
+# Python bindings
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
+find_package(pybind11 CONFIG REQUIRED)
+
+pybind11_add_module(aerial_sim
+    src/python/aerial_sim_bindings.cpp
+)
+
+target_link_libraries(aerial_sim
+    PRIVATE
+        aerial_rl
+)
+
+target_compile_options(aerial_sim
+    PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+)
+
+set_target_properties(aerial_sim PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY
+        "${CMAKE_BINARY_DIR}/python"
 )
 
 # Tests

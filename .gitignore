@@ -20,3 +20,8 @@ build.ninja
 *.swp
 *.swo
 *~
+
+# Python
+.venv/
+__pycache__/
+*.pyc
