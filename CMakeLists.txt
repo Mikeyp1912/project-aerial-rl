@@ -215,6 +215,18 @@ target_compile_options(benchmark_rl_policies
         -Wpedantic
 )
 
+add_executable(benchmark_imitation_learning
+    apps/benchmark_imitation_learning.cpp
+)
+
+target_link_libraries(benchmark_imitation_learning
+    PRIVATE aerial_rl
+)
+
+target_compile_options(benchmark_imitation_learning
+    PRIVATE -Wall -Wextra -Wpedantic
+)
+
 # Tests
 include(CTest)
 
