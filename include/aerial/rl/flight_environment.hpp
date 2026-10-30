@@ -58,6 +58,10 @@ namespace aerial::rl
         InitialStateRandomizationParameters initial_state_randomization;
 
         WindRandomizationParameters wind_randomization;
+
+        // Aerodynamic drag coefficients (N s/m).
+        // Default is zero for backwards compatibility.
+        Eigen::Vector3d linear_drag = Eigen::Vector3d::Zero();
     };
 
     struct FlightStepResult

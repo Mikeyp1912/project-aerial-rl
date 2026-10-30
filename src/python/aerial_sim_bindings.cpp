@@ -30,7 +30,10 @@ namespace
                 aerial::rl::PIDTargetReference::EpisodeRelative,
             double maximum_horizontal_offset = 5.0,
             bool hover_centered_altitude = false,
-            double maximum_altitude_offset = 1.0
+            double maximum_altitude_offset = 1.0,
+            bool randomize_wind = false,
+            double maximum_wind_speed = 5.0,
+            std::array<double, 3> linear_drag = {0.0, 0.0, 0.0}
         )
         {
             aerial::rl::FlightEnvironmentParameters parameters;
@@ -50,6 +53,17 @@ namespace
 
             parameters.pid_targets.maximum_altitude_offset =
                 maximum_altitude_offset;
+
+            parameters.wind_randomization.enabled = randomize_wind;
+
+            parameters.wind_randomization.maximum_horizontal_speed =
+                maximum_wind_speed;
+
+            parameters.linear_drag = Eigen::Vector3d(
+                linear_drag[0],
+                linear_drag[1],
+                linear_drag[2]
+            );
 
             auto& randomization =
                 parameters.initial_state_randomization;
@@ -131,6 +145,17 @@ namespace
             };
         }
 
+        std::array<double, 3> GetWindVelocity() const
+        {
+            const auto& wind = environment_->GetWindVelocity();
+
+            return {
+                wind.x(),
+                wind.y(),
+                wind.z()
+            };
+        }
+
         double GetSimulationTime() const
         {
             return environment_->GetSimulationTime();
@@ -196,7 +221,10 @@ PYBIND11_MODULE(aerial_sim, module)
                 aerial::rl::PIDTargetReference,
                 double,
                 bool,
-                double
+                double,
+                bool,
+                double,
+                std::array<double, 3>
             >(),
             py::arg("time_step") = 1.0 / 120.0,
             py::arg("maximum_episode_time") = 20.0,
@@ -211,7 +239,10 @@ PYBIND11_MODULE(aerial_sim, module)
                 aerial::rl::PIDTargetReference::EpisodeRelative,
             py::arg("maximum_horizontal_offset") = 5.0,
             py::arg("hover_centered_altitude") = false,
-            py::arg("maximum_altitude_offset") = 1.0
+            py::arg("maximum_altitude_offset") = 1.0,
+            py::arg("randomize_wind") = false,
+            py::arg("maximum_wind_speed") = 5.0,
+            py::arg("linear_drag") = std::array<double, 3>{0.0, 0.0, 0.0}
         )
         .def(
             "reset",
@@ -242,6 +273,10 @@ PYBIND11_MODULE(aerial_sim, module)
         .def(
             "get_action_mode",
             &PythonFlightEnvironment::GetActionMode
+        )
+        .def(
+            "get_wind_velocity",
+            &PythonFlightEnvironment::GetWindVelocity
         );
 }
 

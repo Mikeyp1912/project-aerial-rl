@@ -29,5 +29,9 @@ namespace aerial::physics
         // Linear drag coefficients for world, X, Y, Z (N s/m)
         // Zero preserves the original drag-free dynamics
         Eigen::Vector3d linear_drag = Eigen::Vector3d::Zero();
+
+        // Linear aerodynamic drag coefficients (N s/m).
+        // Initial simulation values; subject to later calibration.
+        // Eigen::Vector3d linear_drag = {0.1, 0.1, 0.05};
     };
 }

@@ -16,6 +16,11 @@ namespace aerial::rl
             )
         :
             parameters_(parameters),
+            simulation_([&parameters] {
+                physics::DroneParameters drone_parameters;
+                drone_parameters.linear_drag = parameters.linear_drag;
+                return drone_parameters;
+            }()),
             body_rate_adapter_(parameters.body_rate),
             pid_target_adapter_([&parameters] {
                 auto pid_parameters = parameters.pid_targets;
@@ -65,6 +70,14 @@ namespace aerial::rl
         {
             throw std::invalid_argument(
                 "Invalid wind randomization parameters"
+            );
+        }
+
+        if (!parameters_.linear_drag.allFinite() ||
+            (parameters_.linear_drag.array() < 0.0).any())
+        {
+            throw std::invalid_argument(
+                "Invalid aerodynamic drag coefficients"
             );
         }
 

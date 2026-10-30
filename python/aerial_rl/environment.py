@@ -34,6 +34,9 @@ class AerialDroneEnv(gym.Env):
         maximum_horizontal_offset: float = 5.0,
         hover_centered_altitude: bool = False,
         maximum_altitude_offset: float = 1.0,
+        randomize_wind: bool = False,
+        maximum_wind_speed: float = 5.0,
+        linear_drag: tuple[float, float, float] = (0.0, 0.0, 0.0),
     ):
         super().__init__()
 
@@ -48,6 +51,9 @@ class AerialDroneEnv(gym.Env):
             maximum_horizontal_offset=maximum_horizontal_offset,
             hover_centered_altitude=hover_centered_altitude,
             maximum_altitude_offset=maximum_altitude_offset,
+            randomize_wind=randomize_wind,
+            maximum_wind_speed=maximum_wind_speed,
+            linear_drag=linear_drag,
         )
 
         self.observation_space = spaces.Box(
@@ -95,6 +101,10 @@ class AerialDroneEnv(gym.Env):
                     self.simulator.get_velocity(),
                     dtype=np.float64,
                 ),
+                "wind_velocity": np.asarray(
+                    self.simulator.get_wind_velocity(),
+                    dtype=np.float64,
+                ),
             },
         )
 
@@ -135,6 +145,10 @@ class AerialDroneEnv(gym.Env):
         info = {
             "simulation_time": float(
                 self.simulator.get_simulation_time()
+            ),
+            "wind_velocity": np.asarray(
+                self.simulator.get_wind_velocity(),
+                dtype=np.float64,
             ),
         }
 

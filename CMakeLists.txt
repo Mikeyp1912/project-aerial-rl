@@ -1317,4 +1317,21 @@ if(BUILD_TESTING)
         COMMAND rl_wind_randomization_test
     )
 
+    add_executable(aerodynamic_wind_force_test
+        tests/aerodynamic_wind_force_test.cpp
+    )
+
+    target_link_libraries(aerodynamic_wind_force_test
+        PRIVATE aerial_physics
+    )
+
+    target_compile_options(aerodynamic_wind_force_test
+        PRIVATE -UNDEBUG
+    )
+
+    add_test(
+        NAME aerodynamic_wind_force
+        COMMAND aerodynamic_wind_force_test
+    )
+
 endif()
