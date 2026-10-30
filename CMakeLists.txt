@@ -100,6 +100,8 @@ add_library(aerial_rl STATIC
     src/rl/neural_network_policy.cpp
     src/rl/adam_optimizer.cpp
     src/rl/batch_trainer.cpp
+    src/rl/training_dataset.cpp
+    src/rl/epoch_trainer.cpp
 )
 
 target_include_directories(aerial_rl
@@ -1172,6 +1174,23 @@ if(BUILD_TESTING)
     add_test(
         NAME rl_batch_training
         COMMAND rl_batch_training_test
+    )
+
+    add_executable(rl_training_dataset_test
+        tests/rl_training_dataset_test.cpp
+    )
+
+    target_link_libraries(rl_training_dataset_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(rl_training_dataset_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_training_dataset
+        COMMAND rl_training_dataset_test
     )
 
 endif()
