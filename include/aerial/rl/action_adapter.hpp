@@ -55,9 +55,15 @@ namespace aerial::rl
             control::RateControllerState controller_state_;
     };
 
+    enum class PIDTargetReference
+    {
+        EpisodeRelative,
+        WorldRelative
+    };
+
     struct PIDTargetActionParameters
     {
-        // Maximum XY displacement relative to the episode origin (m)
+        // Maximum XY offset from the selected reference point (m).
         double maximum_horizontal_offset = 5.0;
 
         // Absolute altitude target range (m)
@@ -68,6 +74,12 @@ namespace aerial::rl
         control::HorizontalVelocityControllerParameters velocity;
         control::AltitudeControllerParameters altitude;
         control::FlightControllerParameters flight;
+
+        PIDTargetReference reference = PIDTargetReference::EpisodeRelative;
+
+        // Fixed world-space XY position used in WorldRelative mode.
+        Eigen::Vector2d world_target_position =Eigen::Vector2d::Zero();
+
     };
 
     class PIDTargetActionAdapter
@@ -94,4 +106,10 @@ namespace aerial::rl
 
             bool initialized_ = false;
     };
+
+    Eigen::Vector2d CalculatePIDHorizontalTarget(
+        const PIDTargetActionParameters& parameters,
+        const Eigen::Vector2d& episode_origin,
+        const Action& action
+    );
 }

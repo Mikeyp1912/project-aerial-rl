@@ -17,7 +17,17 @@ namespace aerial::rl
         :
             parameters_(parameters),
             body_rate_adapter_(parameters.body_rate),
-            pid_target_adapter_(parameters.pid_targets)
+            pid_target_adapter_([&parameters] {
+                auto pid_parameters = parameters.pid_targets;
+
+                if (pid_parameters.reference ==
+                    PIDTargetReference::WorldRelative) {
+                    pid_parameters.world_target_position =
+                        parameters.hover_reward.target_position.head<2>();
+                }
+
+                return pid_parameters;
+            }())
     {
         if (!std::isfinite(parameters_.time_step) ||
             parameters_.time_step <= 0.0 ||

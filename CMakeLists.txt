@@ -1266,4 +1266,21 @@ if(BUILD_TESTING)
         COMMAND rl_initial_state_randomization_test
     )
 
+    add_executable(rl_pid_target_reference_test
+        tests/rl_pid_target_reference_test.cpp
+    )
+
+    target_link_libraries(rl_pid_target_reference_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(rl_pid_target_reference_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_pid_target_reference
+        COMMAND rl_pid_target_reference_test
+    )
+
 endif()

@@ -110,7 +110,10 @@ namespace aerial::rl
             !std::isfinite(parameters_.minimum_altitude) ||
             !std::isfinite(parameters_.maximum_altitude) ||
             parameters_.minimum_altitude < 0.0 ||
-            parameters_.maximum_altitude <= parameters_.minimum_altitude)
+            parameters_.maximum_altitude <= parameters_.minimum_altitude ||
+            !parameters_.world_target_position.allFinite() ||
+            (parameters_.reference != PIDTargetReference::EpisodeRelative &&
+             parameters_.reference != PIDTargetReference::WorldRelative))
         {
             throw std::invalid_argument(
                 "Invalid PID-target action parameters"
@@ -165,12 +168,11 @@ namespace aerial::rl
         }
 
         const Eigen::Vector2d target_position =
-            episode_origin_ +
-            parameters_.maximum_horizontal_offset *
-            Eigen::Vector2d(
-                    std::clamp(action[0], -1.0, 1.0),
-                    std::clamp(action[1], -1.0, 1.0)
-                    );
+            CalculatePIDHorizontalTarget(
+                parameters_,
+                episode_origin_,
+                action
+            );
 
         const double altitude_fraction =
             0.5 * (std::clamp(action[2], -1.0, 1.0) + 1.0);
@@ -247,5 +249,39 @@ namespace aerial::rl
                     );
 
         return flight_output.motor_commands;
+    }
+
+    Eigen::Vector2d CalculatePIDHorizontalTarget(
+        const PIDTargetActionParameters& parameters,
+        const Eigen::Vector2d& episode_origin,
+        const Action& action
+    )
+    {
+        if (!episode_origin.allFinite() ||
+            !parameters.world_target_position.allFinite() ||
+            !std::isfinite(parameters.maximum_horizontal_offset) ||
+            parameters.maximum_horizontal_offset <= 0.0 ||
+            (parameters.reference != PIDTargetReference::EpisodeRelative &&
+             parameters.reference != PIDTargetReference::WorldRelative)) {
+            throw std::invalid_argument("Invalid PID target configuration");
+        }
+
+        for (double value : action) {
+            if (!std::isfinite(value)) {
+                throw std::invalid_argument("Invalid PID action");
+            }
+        }
+
+        const Eigen::Vector2d reference_position =
+            parameters.reference == PIDTargetReference::WorldRelative
+                ? parameters.world_target_position
+                : episode_origin;
+
+        return reference_position +
+            parameters.maximum_horizontal_offset *
+            Eigen::Vector2d(
+                std::clamp(action[0], -1.0, 1.0),
+                std::clamp(action[1], -1.0, 1.0)
+            );
     }
 }

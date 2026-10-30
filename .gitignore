@@ -25,3 +25,6 @@ build.ninja
 .venv/
 __pycache__/
 *.pyc
+
+# Reinforcement learning outputs
+training_results/
