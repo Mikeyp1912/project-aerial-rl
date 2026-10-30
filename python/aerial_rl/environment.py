@@ -28,6 +28,9 @@ class AerialDroneEnv(gym.Env):
         maximum_velocity: tuple[float, float, float] = (
             0.2, 0.2, 0.0
         ),
+        pid_target_reference: aerial_sim.PIDTargetReference = (
+            aerial_sim.PIDTargetReference.EPISODE_RELATIVE
+        ),
     ):
         super().__init__()
 
@@ -38,6 +41,7 @@ class AerialDroneEnv(gym.Env):
             randomize_initial_state=randomize_initial_state,
             maximum_position_offset=maximum_position_offset,
             maximum_velocity=maximum_velocity,
+            pid_target_reference=pid_target_reference,
         )
 
         self.observation_space = spaces.Box(

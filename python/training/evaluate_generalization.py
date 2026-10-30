@@ -10,6 +10,7 @@ from stable_baselines3 import PPO
 
 from aerial_rl.environment import AerialDroneEnv
 
+import aerial_sim
 
 def evaluate_policy(
     name: str,
@@ -17,10 +18,12 @@ def evaluate_policy(
     seeds: list[int],
     duration: float,
     randomized: bool,
+    reference: aerial_sim.PIDTargetReference,
 ):
     env = AerialDroneEnv(
         maximum_episode_time=duration,
         randomize_initial_state=randomized,
+        pid_target_reference=reference,
     )
 
     rewards = []
@@ -153,32 +156,42 @@ def main():
     print(f"Duration: {args.duration:.1f} s")
 
     for randomized in (False, True):
-        print()
-        print(
-            "Randomized initial states"
-            if randomized
-            else "Fixed initial state"
-        )
-
-        results = [
-            evaluate_policy(
-                "Zero action",
-                None,
-                seeds,
-                args.duration,
-                randomized,
+        for reference_name, reference in (
+            (
+                "Episode-relative",
+                aerial_sim.PIDTargetReference.EPISODE_RELATIVE,
             ),
-            evaluate_policy(
-                "Conservative PPO",
-                model,
-                seeds,
-                args.duration,
-                randomized,
+            (
+                "World-relative",
+                aerial_sim.PIDTargetReference.WORLD_RELATIVE,
             ),
-        ]
+        ):
+            print()
+            print(
+                f"{reference_name} | "
+                f"{'Randomized' if randomized else 'Fixed'} start"
+            )
 
-        print_results(results)
+            results = [
+                evaluate_policy(
+                    "Zero action",
+                    None,
+                    seeds,
+                    args.duration,
+                    randomized,
+                    reference,
+                ),
+                evaluate_policy(
+                    "Conservative PPO",
+                    model,
+                    seeds,
+                    args.duration,
+                    randomized,
+                    reference,
+                ),
+            ]
 
+            print_results(results)
 
 if __name__ == "__main__":
     main()

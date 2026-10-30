@@ -2,7 +2,6 @@
 #include <array>
 #include <cstdint>
 #include <memory>
-#include <stdexcept>
 #include <tuple>
 
 #include <pybind11/pybind11.h>
@@ -26,7 +25,8 @@ namespace
             std::array<double, 3> maximum_position_offset =
                 {0.5, 0.5, 0.2},
             std::array<double, 3> maximum_velocity =
-                {0.2, 0.2, 0.0}
+                {0.2, 0.2, 0.0},
+            aerial::rl::PIDTargetReference pid_target_reference = aerial::rl::PIDTargetReference::EpisodeRelative
         )
         {
             aerial::rl::FlightEnvironmentParameters parameters;
@@ -35,6 +35,8 @@ namespace
             parameters.maximum_episode_time =
                 maximum_episode_time;
             parameters.action_mode = action_mode;
+
+            parameters.pid_targets.reference = pid_target_reference;
 
             auto& randomization =
                 parameters.initial_state_randomization;
@@ -154,6 +156,19 @@ PYBIND11_MODULE(aerial_sim, module)
         )
         .export_values();
 
+    py::enum_<aerial::rl::PIDTargetReference>(
+        module, "PIDTargetReference"
+    )
+        .value(
+            "EPISODE_RELATIVE",
+            aerial::rl::PIDTargetReference::EpisodeRelative
+        )
+        .value(
+            "WORLD_RELATIVE",
+            aerial::rl::PIDTargetReference::WorldRelative
+        )
+        .export_values();
+
     py::class_<PythonFlightEnvironment>(
         module, "FlightEnvironment"
     )
@@ -164,7 +179,8 @@ PYBIND11_MODULE(aerial_sim, module)
                 aerial::rl::ActionMode,
                 bool,
                 std::array<double, 3>,
-                std::array<double, 3>
+                std::array<double, 3>,
+                aerial::rl::PIDTargetReference
             >(),
             py::arg("time_step") = 1.0 / 120.0,
             py::arg("maximum_episode_time") = 20.0,
@@ -174,7 +190,9 @@ PYBIND11_MODULE(aerial_sim, module)
             py::arg("maximum_position_offset") =
                 std::array<double, 3>{0.5, 0.5, 0.2},
             py::arg("maximum_velocity") =
-                std::array<double, 3>{0.2, 0.2, 0.0}
+                std::array<double, 3>{0.2, 0.2, 0.0},
+            py::arg("pid_target_reference") =
+                aerial::rl::PIDTargetReference::EpisodeRelative
         )
         .def(
             "reset",
