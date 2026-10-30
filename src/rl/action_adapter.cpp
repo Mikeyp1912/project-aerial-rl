@@ -105,7 +105,10 @@ namespace aerial::rl
         :
             parameters_(parameters)
     {
-        if (!std::isfinite(parameters_.maximum_horizontal_offset) ||
+        if (!std::isfinite(parameters_.hover_altitude) ||
+            !std::isfinite(parameters_.maximum_altitude_offset) ||
+            parameters_.maximum_altitude_offset <= 0.0 ||
+            !std::isfinite(parameters_.maximum_horizontal_offset) ||
             parameters_.maximum_horizontal_offset <= 0.0 ||
             !std::isfinite(parameters_.minimum_altitude) ||
             !std::isfinite(parameters_.maximum_altitude) ||
@@ -174,14 +177,7 @@ namespace aerial::rl
                 action
             );
 
-        const double altitude_fraction =
-            0.5 * (std::clamp(action[2], -1.0, 1.0) + 1.0);
-
-        const double target_altitude =
-            parameters_.minimum_altitude +
-            altitude_fraction *
-            (parameters_.maximum_altitude -
-             parameters_.minimum_altitude);
+        const double target_altitude = CalculatePIDAltitudeTarget(parameters_, action[2]);
 
         constexpr double pi = 3.14159265358979323846;
 
@@ -283,5 +279,45 @@ namespace aerial::rl
                 std::clamp(action[0], -1.0, 1.0),
                 std::clamp(action[1], -1.0, 1.0)
             );
+    }
+
+    double CalculatePIDAltitudeTarget(
+        const PIDTargetActionParameters& parameters,
+        double normalized_action
+    )
+    {
+        if (!std::isfinite(normalized_action) ||
+            !std::isfinite(parameters.minimum_altitude) ||
+            !std::isfinite(parameters.maximum_altitude) ||
+            parameters.minimum_altitude < 0.0 ||
+            parameters.maximum_altitude <= parameters.minimum_altitude ||
+            !std::isfinite(parameters.hover_altitude) ||
+            !std::isfinite(parameters.maximum_altitude_offset) ||
+            parameters.maximum_altitude_offset <= 0.0)
+        {
+            throw std::invalid_argument(
+                "Invalid PID altitude target configuration"
+            );
+        }
+
+        const double action =
+            std::clamp(normalized_action, -1.0, 1.0);
+
+        if (parameters.hover_centered_altitude)
+        {
+            return std::clamp(
+                parameters.hover_altitude +
+                    action * parameters.maximum_altitude_offset,
+                parameters.minimum_altitude,
+                parameters.maximum_altitude
+            );
+        }
+
+        const double fraction = 0.5 * (action + 1.0);
+
+        return parameters.minimum_altitude +
+            fraction *
+            (parameters.maximum_altitude -
+             parameters.minimum_altitude);
     }
 }

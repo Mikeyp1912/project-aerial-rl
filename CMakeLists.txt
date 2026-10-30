@@ -1283,4 +1283,21 @@ if(BUILD_TESTING)
         COMMAND rl_pid_target_reference_test
     )
 
+    add_executable(rl_hover_action_scaling_test
+        tests/rl_hover_action_scaling_test.cpp
+    )
+
+    target_link_libraries(rl_hover_action_scaling_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(rl_hover_action_scaling_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_hover_action_scaling
+        COMMAND rl_hover_action_scaling_test
+    )
+
 endif()

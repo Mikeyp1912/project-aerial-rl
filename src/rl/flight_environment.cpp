@@ -26,6 +26,11 @@ namespace aerial::rl
                         parameters.hover_reward.target_position.head<2>();
                 }
 
+                if (pid_parameters.hover_centered_altitude) {
+                    pid_parameters.hover_altitude =
+                        parameters.hover_reward.target_position.z();
+                }
+
                 return pid_parameters;
             }())
     {

@@ -70,6 +70,15 @@ namespace aerial::rl
         double minimum_altitude = 0.5;
         double maximum_altitude = 5.0;
 
+        // Optional hover-centred altitude mapping.
+        // When enabled, action[2] = 0 commands hover_altitude.
+        bool hover_centered_altitude = false;
+
+        double hover_altitude = 2.0;
+
+        // Maximum altitude adjustment in either direction (m).
+        double maximum_altitude_offset = 1.0;
+
         control::HorizontalPositionControllerParameters position;
         control::HorizontalVelocityControllerParameters velocity;
         control::AltitudeControllerParameters altitude;
@@ -111,5 +120,10 @@ namespace aerial::rl
         const PIDTargetActionParameters& parameters,
         const Eigen::Vector2d& episode_origin,
         const Action& action
+    );
+
+    double CalculatePIDAltitudeTarget(
+        const PIDTargetActionParameters& parameters,
+        double normalized_action
     );
 }
