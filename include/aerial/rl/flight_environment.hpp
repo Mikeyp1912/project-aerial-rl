@@ -30,6 +30,14 @@ namespace aerial::rl
         };
     };
 
+    struct WindRandomizationParameters
+    {
+        bool enabled = false;
+
+        // Maximum horizontal wind speed in m/s.
+        double maximum_horizontal_speed = 5.0;
+    };
+
     struct FlightEnvironmentParameters
     {
         double time_step = 1.0 / 120.0;
@@ -48,6 +56,8 @@ namespace aerial::rl
         ObservationNormalizationParameters observation_normalization;
 
         InitialStateRandomizationParameters initial_state_randomization;
+
+        WindRandomizationParameters wind_randomization;
     };
 
     struct FlightStepResult
@@ -93,6 +103,8 @@ namespace aerial::rl
             const EpisodeStatistics& GetEpisodeStatistics() const;
 
             Observation GetNormalizedRLObservation() const;
+
+            const Eigen::Vector3d& GetWindVelocity() const;
 
         private:
             FlightEnvironmentParameters parameters_;

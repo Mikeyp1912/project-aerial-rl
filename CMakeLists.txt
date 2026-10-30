@@ -1300,4 +1300,21 @@ if(BUILD_TESTING)
         COMMAND rl_hover_action_scaling_test
     )
 
+    add_executable(rl_wind_randomization_test
+        tests/rl_wind_randomization_test.cpp
+    )
+
+    target_link_libraries(rl_wind_randomization_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(rl_wind_randomization_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_wind_randomization
+        COMMAND rl_wind_randomization_test
+    )
+
 endif()

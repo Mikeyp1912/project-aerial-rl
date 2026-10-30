@@ -58,6 +58,16 @@ namespace aerial::rl
             );
         }
 
+        const auto& wind = parameters_.wind_randomization;
+
+        if (!std::isfinite(wind.maximum_horizontal_speed) ||
+            wind.maximum_horizontal_speed < 0.0)
+        {
+            throw std::invalid_argument(
+                "Invalid wind randomization parameters"
+            );
+        }
+
         Reset();
     }
 
@@ -95,6 +105,45 @@ namespace aerial::rl
         }
         else {
             simulation_.Reset();
+        }
+
+        // Randomize a constant horizontal wind for this episode.
+        const auto& wind = parameters_.wind_randomization;
+
+        // Explicitly reset wind even when randomization is disabled.
+        simulation_.SetWindVelocity(Eigen::Vector3d::Zero());
+
+        if (wind.enabled)
+        {
+            // Separate generator from initial-state randomization so
+            // changing one does not alter the other's random sequence.
+            std::mt19937 wind_generator(seed ^ 0x9E3779B9u);
+
+            std::uniform_real_distribution<double> magnitude_distribution(
+                0.0,
+                wind.maximum_horizontal_speed
+            );
+
+            constexpr double pi = 3.14159265358979323846;
+
+            std::uniform_real_distribution<double> angle_distribution(
+                -pi,
+                pi
+            );
+
+            const double magnitude =
+                magnitude_distribution(wind_generator);
+
+            const double angle =
+                angle_distribution(wind_generator);
+
+            const Eigen::Vector3d wind_velocity(
+                magnitude * std::cos(angle),
+                magnitude * std::sin(angle),
+                0.0
+            );
+
+            simulation_.SetWindVelocity(wind_velocity);
         }
 
         sensors_.Reset(seed);
@@ -268,5 +317,11 @@ namespace aerial::rl
                 GetRLObservation(),
                 parameters_.observation_normalization
                 );
+    }
+
+    const Eigen::Vector3d&
+    FlightEnvironment::GetWindVelocity() const
+    {
+        return simulation_.GetWindVelocity();
     }
 }
