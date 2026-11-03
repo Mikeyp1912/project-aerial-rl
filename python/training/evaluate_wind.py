@@ -13,7 +13,10 @@ from stable_baselines3 import PPO
 from aerial_rl.environment import AerialDroneEnv
 
 
-def make_environment(duration, wind_speed):
+def make_environment(duration, wind_speed, observation_mode=None):
+    if observation_mode is None:
+        observation_mode = aerial_sim.ObservationMode.BASE
+
     return AerialDroneEnv(
         maximum_episode_time=duration,
         randomize_initial_state=True,
@@ -28,11 +31,22 @@ def make_environment(duration, wind_speed):
         randomize_wind=wind_speed > 0.0,
         maximum_wind_speed=wind_speed,
         linear_drag=(0.1, 0.1, 0.05),
+        observation_mode=observation_mode,
     )
 
 
-def evaluate(model, seeds, duration, wind_speed):
-    env = make_environment(duration, wind_speed)
+def evaluate(
+    model,
+    seeds,
+    duration,
+    wind_speed,
+    observation_mode=None,
+):
+    env = make_environment(
+        duration,
+        wind_speed,
+        observation_mode=observation_mode,
+    )
 
     rewards = []
     final_xy_errors = []

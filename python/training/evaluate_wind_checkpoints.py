@@ -12,6 +12,7 @@ import numpy as np
 from stable_baselines3 import PPO
 
 from evaluate_wind import evaluate
+import aerial_sim
 
 
 def find_checkpoints(directory: Path):
@@ -128,6 +129,18 @@ def main():
 
     config = load_configuration(args.directory)
 
+    observation_modes = {
+        "BASE": aerial_sim.ObservationMode.BASE,
+        "HOVER_AUGMENTED": aerial_sim.ObservationMode.HOVER_AUGMENTED,
+    }
+
+    mode_name = config.get("observation_mode", "BASE")
+
+    if mode_name not in observation_modes:
+        parser.error(f"Unsupported observation mode: {mode_name}")
+
+    observation_mode = observation_modes[mode_name]
+
     # The shared evaluator currently uses these fixed settings.
     expected = {
         "maximum_horizontal_offset": 1.0,
@@ -201,6 +214,7 @@ def main():
                 seeds,
                 duration=5.0,
                 wind_speed=wind_speed,
+                observation_mode=observation_mode,
             )
 
             row = {
