@@ -40,6 +40,9 @@ class AerialDroneEnv(gym.Env):
         horizontal_action_weight: float = 0.0,
         altitude_action_weight: float = 0.0,
         yaw_action_weight: float = 0.0,
+        observation_mode: aerial_sim.ObservationMode = (
+            aerial_sim.ObservationMode.BASE
+        ),
     ):
         super().__init__()
 
@@ -60,12 +63,15 @@ class AerialDroneEnv(gym.Env):
             horizontal_action_weight=horizontal_action_weight,
             altitude_action_weight=altitude_action_weight,
             yaw_action_weight=yaw_action_weight,
+            observation_mode=observation_mode,
         )
+
+        observation_size = self.simulator.get_observation_size()
 
         self.observation_space = spaces.Box(
             low=-1.0,
             high=1.0,
-            shape=(16,),
+            shape=(observation_size,),
             dtype=np.float32,
         )
 

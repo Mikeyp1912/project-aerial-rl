@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <tuple>
+#include <vector>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -36,7 +37,9 @@ namespace
             std::array<double, 3> linear_drag = {0.0, 0.0, 0.0},
             double horizontal_action_weight = 0.0,
             double altitude_action_weight = 0.0,
-            double yaw_action_weight = 0.0
+            double yaw_action_weight = 0.0,
+            aerial::rl::ObservationMode observation_mode =
+                aerial::rl::ObservationMode::Base
         )
         {
             aerial::rl::FlightEnvironmentParameters parameters;
@@ -77,6 +80,8 @@ namespace
             parameters.action_regularization.yaw_weight =
                 yaw_action_weight;
 
+            parameters.observation_mode = observation_mode;
+
             auto& randomization =
                 parameters.initial_state_randomization;
 
@@ -102,17 +107,17 @@ namespace
                 );
         }
 
-        aerial::rl::Observation Reset(
+        std::vector<double> Reset(
             std::uint32_t seed = 42
         )
         {
             environment_->Reset(seed);
 
-            return environment_->GetNormalizedRLObservation();
+            return environment_->GetPolicyObservation();
         }
 
         std::tuple<
-            aerial::rl::Observation,
+            std::vector<double>,
             double,
             bool,
             bool
@@ -121,16 +126,21 @@ namespace
             const auto result = environment_->StepAction(action);
 
             return {
-                environment_->GetNormalizedRLObservation(),
+                environment_->GetPolicyObservation(),
                 result.reward,
                 result.terminated,
                 result.truncated
             };
         }
 
-        aerial::rl::Observation GetObservation() const
+        std::vector<double> GetObservation() const
         {
-            return environment_->GetNormalizedRLObservation();
+            return environment_->GetPolicyObservation();
+        }
+
+        std::size_t GetObservationSize() const
+        {
+            return environment_->GetPolicyObservationSize();
         }
 
         std::array<double, 3> GetPosition() const
@@ -219,6 +229,19 @@ PYBIND11_MODULE(aerial_sim, module)
         )
         .export_values();
 
+    py::enum_<aerial::rl::ObservationMode>(
+        module, "ObservationMode"
+    )
+        .value(
+            "BASE",
+            aerial::rl::ObservationMode::Base
+        )
+        .value(
+            "HOVER_AUGMENTED",
+            aerial::rl::ObservationMode::HoverAugmented
+        )
+        .export_values();
+
     py::class_<PythonFlightEnvironment>(
         module, "FlightEnvironment"
     )
@@ -239,7 +262,8 @@ PYBIND11_MODULE(aerial_sim, module)
                 std::array<double, 3>,
                 double,
                 double,
-                double
+                double,
+                aerial::rl::ObservationMode
             >(),
             py::arg("time_step") = 1.0 / 120.0,
             py::arg("maximum_episode_time") = 20.0,
@@ -260,7 +284,9 @@ PYBIND11_MODULE(aerial_sim, module)
             py::arg("linear_drag") = std::array<double, 3>{0.0, 0.0, 0.0},
             py::arg("horizontal_action_weight") = 0.0,
             py::arg("altitude_action_weight") = 0.0,
-            py::arg("yaw_action_weight") = 0.0
+            py::arg("yaw_action_weight") = 0.0,
+            py::arg("observation_mode") =
+                aerial::rl::ObservationMode::Base
         )
         .def(
             "reset",
@@ -275,6 +301,10 @@ PYBIND11_MODULE(aerial_sim, module)
         .def(
             "get_observation",
             &PythonFlightEnvironment::GetObservation
+        )
+        .def(
+            "get_observation_size",
+            &PythonFlightEnvironment::GetObservationSize
         )
         .def(
             "get_position",
