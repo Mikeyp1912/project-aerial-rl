@@ -524,6 +524,120 @@ int main()
         assert(threw);
     }
 
+    // Zero action must incur no regularization penalty.
+    {
+        rl::FlightEnvironmentParameters parameters;
+
+        parameters.action_mode = rl::ActionMode::PIDTargets;
+
+        parameters.action_regularization.horizontal_weight = 0.05;
+        parameters.action_regularization.altitude_weight = 0.10;
+        parameters.action_regularization.yaw_weight = 0.02;
+
+        rl::FlightEnvironment environment(parameters);
+
+        const rl::Action action{
+            0.0, 0.0, 0.0, 0.0
+        };
+
+        const auto result = environment.StepAction(action);
+
+        assert(std::abs(result.action_penalty) < 1e-12);
+
+        assert(std::abs(
+            result.reward -
+            result.reward_components.total
+        ) < 1e-12);
+
+        assert(std::abs(
+            environment.GetEpisodeStatistics().cumulative_reward -
+            result.reward
+        ) < 1e-12);
+    }
+
+    // Nonzero actions must incur the expected quadratic penalty.
+    {
+        rl::FlightEnvironmentParameters parameters;
+
+        parameters.action_mode = rl::ActionMode::PIDTargets;
+
+        parameters.action_regularization.horizontal_weight = 0.05;
+        parameters.action_regularization.altitude_weight = 0.10;
+        parameters.action_regularization.yaw_weight = 0.02;
+
+        rl::FlightEnvironment environment(parameters);
+
+        const rl::Action action{
+            0.5,
+            -0.5,
+            0.4,
+            0.2
+        };
+
+        const double expected_penalty =
+            0.05 * (0.5 * 0.5 + 0.5 * 0.5) +
+            0.10 * (0.4 * 0.4) +
+            0.02 * (0.2 * 0.2);
+
+        const auto result = environment.StepAction(action);
+
+        assert(std::abs(
+            result.action_penalty - expected_penalty
+        ) < 1e-12);
+
+        assert(std::abs(
+            result.reward -
+            (result.reward_components.total - expected_penalty)
+        ) < 1e-12);
+
+        // Episode statistics must include the penalty.
+        assert(std::abs(
+            environment.GetEpisodeStatistics().cumulative_reward -
+            result.reward
+        ) < 1e-12);
+    }
+
+    // Default weights must preserve the original reward.
+    {
+        rl::FlightEnvironmentParameters parameters;
+
+        parameters.action_mode = rl::ActionMode::PIDTargets;
+
+        rl::FlightEnvironment environment(parameters);
+
+        const rl::Action action{
+            0.5, -0.5, 0.4, 0.2
+        };
+
+        const auto result = environment.StepAction(action);
+
+        assert(std::abs(result.action_penalty) < 1e-12);
+
+        assert(std::abs(
+            result.reward - result.reward_components.total
+        ) < 1e-12);
+    }
+
+    // Invalid regularization coefficients must be rejected.
+    {
+        rl::FlightEnvironmentParameters parameters;
+
+        parameters.action_regularization.altitude_weight = -0.1;
+
+        bool threw = false;
+
+        try
+        {
+            rl::FlightEnvironment environment(parameters);
+        }
+        catch (const std::invalid_argument&)
+        {
+            threw = true;
+        }
+
+        assert(threw);
+    }
+
     std::cout << "Flight environment tests PASSED\n";
     return 0;
 }

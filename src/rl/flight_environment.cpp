@@ -81,6 +81,26 @@ namespace aerial::rl
             );
         }
 
+        const auto& regularization =
+            parameters_.action_regularization;
+
+        const double weights[] = {
+            regularization.horizontal_weight,
+            regularization.altitude_weight,
+            regularization.yaw_weight
+        };
+
+        for (const double weight : weights)
+        {
+            if (!std::isfinite(weight) || weight < 0.0)
+            {
+                throw std::invalid_argument(
+                    "Action regularization weights must be "
+                    "finite and non-negative"
+                );
+            }
+        }
+
         Reset();
     }
 
@@ -177,8 +197,16 @@ namespace aerial::rl
     }
 
     FlightStepResult FlightEnvironment::Step(
-            const physics::MotorCommands& commands
-            )
+        const physics::MotorCommands& commands
+    )
+    {
+        return StepWithPenalty(commands, 0.0);
+    }
+
+    FlightStepResult FlightEnvironment::StepWithPenalty(
+        const physics::MotorCommands& commands,
+        double action_penalty
+    )
     {
         if (episode_finished_) {
             throw std::logic_error("Cannot step a finished episode; call Reset()");
@@ -235,8 +263,14 @@ namespace aerial::rl
 
             result.reward = result.reward_components.total;
 
-            if (result.terminated) {
-                result.reward += parameters_.termination.failure_penalty;
+            result.action_penalty = action_penalty;
+
+            result.reward -= result.action_penalty;
+
+            if (result.terminated)
+            {
+                result.reward +=
+                    parameters_.termination.failure_penalty;
             }
         }
         
@@ -281,14 +315,35 @@ namespace aerial::rl
                                 ));
                 }
             case ActionMode::PIDTargets:
-                {
-                    return Step(pid_target_adapter_.Convert(
-                                action,
-                                sensors_.GetMeasurements(),
-                                simulation_.GetParameters(),
-                                parameters_.time_step
-                                ));
-                }
+            {
+                const auto& regularization =
+                    parameters_.action_regularization;
+
+                // Normalized PID-target actions:
+                // [X offset, Y offset, altitude offset, yaw offset]
+                double penalty =
+                    regularization.horizontal_weight *
+                    (action[0] * action[0] +
+                     action[1] * action[1]);
+
+                penalty +=
+                    regularization.altitude_weight *
+                    action[2] * action[2];
+
+                penalty +=
+                    regularization.yaw_weight *
+                    action[3] * action[3];
+
+                const auto commands =
+                    pid_target_adapter_.Convert(
+                        action,
+                        sensors_.GetMeasurements(),
+                        simulation_.GetParameters(),
+                        parameters_.time_step
+                    );
+
+                return StepWithPenalty(commands, penalty);
+            }
         }
 
         throw std::invalid_argument("Unknown RL action mode");

@@ -38,6 +38,13 @@ namespace aerial::rl
         double maximum_horizontal_speed = 5.0;
     };
 
+    struct ActionRegularizationParameters
+    {
+        double horizontal_weight = 0.0;
+        double altitude_weight = 0.0;
+        double yaw_weight = 0.0;
+    };
+
     struct FlightEnvironmentParameters
     {
         double time_step = 1.0 / 120.0;
@@ -59,6 +66,8 @@ namespace aerial::rl
 
         WindRandomizationParameters wind_randomization;
 
+        ActionRegularizationParameters action_regularization;
+
         // Aerodynamic drag coefficients (N s/m).
         // Default is zero for backwards compatibility.
         Eigen::Vector3d linear_drag = Eigen::Vector3d::Zero();
@@ -70,6 +79,8 @@ namespace aerial::rl
 
         double reward = 0.0;
         HoverRewardComponents reward_components;
+
+        double action_penalty = 0.0;
 
         TerminationReason termination_reason = TerminationReason::None;
 
@@ -125,5 +136,10 @@ namespace aerial::rl
             EpisodeStatisticsTracker statistics_tracker_;
 
             bool episode_finished_ = false;
+
+            FlightStepResult StepWithPenalty(
+                const physics::MotorCommands& commands,
+                double action_penalty
+            );
     };
 }
