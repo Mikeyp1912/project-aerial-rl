@@ -33,7 +33,10 @@ namespace
             double maximum_altitude_offset = 1.0,
             bool randomize_wind = false,
             double maximum_wind_speed = 5.0,
-            std::array<double, 3> linear_drag = {0.0, 0.0, 0.0}
+            std::array<double, 3> linear_drag = {0.0, 0.0, 0.0},
+            double horizontal_action_weight = 0.0,
+            double altitude_action_weight = 0.0,
+            double yaw_action_weight = 0.0
         )
         {
             aerial::rl::FlightEnvironmentParameters parameters;
@@ -64,6 +67,15 @@ namespace
                 linear_drag[1],
                 linear_drag[2]
             );
+
+            parameters.action_regularization.horizontal_weight =
+                horizontal_action_weight;
+
+            parameters.action_regularization.altitude_weight =
+                altitude_action_weight;
+
+            parameters.action_regularization.yaw_weight =
+                yaw_action_weight;
 
             auto& randomization =
                 parameters.initial_state_randomization;
@@ -224,7 +236,10 @@ PYBIND11_MODULE(aerial_sim, module)
                 double,
                 bool,
                 double,
-                std::array<double, 3>
+                std::array<double, 3>,
+                double,
+                double,
+                double
             >(),
             py::arg("time_step") = 1.0 / 120.0,
             py::arg("maximum_episode_time") = 20.0,
@@ -242,7 +257,10 @@ PYBIND11_MODULE(aerial_sim, module)
             py::arg("maximum_altitude_offset") = 1.0,
             py::arg("randomize_wind") = false,
             py::arg("maximum_wind_speed") = 5.0,
-            py::arg("linear_drag") = std::array<double, 3>{0.0, 0.0, 0.0}
+            py::arg("linear_drag") = std::array<double, 3>{0.0, 0.0, 0.0},
+            py::arg("horizontal_action_weight") = 0.0,
+            py::arg("altitude_action_weight") = 0.0,
+            py::arg("yaw_action_weight") = 0.0
         )
         .def(
             "reset",

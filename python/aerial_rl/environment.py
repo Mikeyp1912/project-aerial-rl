@@ -37,6 +37,9 @@ class AerialDroneEnv(gym.Env):
         randomize_wind: bool = False,
         maximum_wind_speed: float = 5.0,
         linear_drag: tuple[float, float, float] = (0.0, 0.0, 0.0),
+        horizontal_action_weight: float = 0.0,
+        altitude_action_weight: float = 0.0,
+        yaw_action_weight: float = 0.0,
     ):
         super().__init__()
 
@@ -54,6 +57,9 @@ class AerialDroneEnv(gym.Env):
             randomize_wind=randomize_wind,
             maximum_wind_speed=maximum_wind_speed,
             linear_drag=linear_drag,
+            horizontal_action_weight=horizontal_action_weight,
+            altitude_action_weight=altitude_action_weight,
+            yaw_action_weight=yaw_action_weight,
         )
 
         self.observation_space = spaces.Box(
