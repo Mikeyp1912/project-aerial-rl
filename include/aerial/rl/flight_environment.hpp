@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 #include <Eigen/Core>
 
@@ -14,6 +15,7 @@
 #include "aerial/rl/episode_termination.hpp"
 #include "aerial/rl/episode_statistics.hpp"
 #include "aerial/rl/observation_normalizer.hpp"
+#include "aerial/rl/task_observation.hpp"
 
 namespace aerial::rl
 {
@@ -66,11 +68,13 @@ namespace aerial::rl
 
         WindRandomizationParameters wind_randomization;
 
-        ActionRegularizationParameters action_regularization;
-
         // Aerodynamic drag coefficients (N s/m).
         // Default is zero for backwards compatibility.
         Eigen::Vector3d linear_drag = Eigen::Vector3d::Zero();
+
+        ActionRegularizationParameters action_regularization;
+
+        ObservationMode observation_mode = ObservationMode::Base;
     };
 
     struct FlightStepResult
@@ -120,6 +124,10 @@ namespace aerial::rl
             Observation GetNormalizedRLObservation() const;
 
             const Eigen::Vector3d& GetWindVelocity() const;
+
+            std::vector<double> GetPolicyObservation() const;
+
+            std::size_t GetPolicyObservationSize() const;
 
         private:
             FlightEnvironmentParameters parameters_;

@@ -101,6 +101,9 @@ namespace aerial::rl
             }
         }
 
+        // Reject invalid observation configurations.
+        (void)GetObservationSize(parameters_.observation_mode);
+
         Reset();
     }
 
@@ -385,6 +388,40 @@ namespace aerial::rl
                 GetRLObservation(),
                 parameters_.observation_normalization
                 );
+    }
+
+    std::size_t FlightEnvironment::GetPolicyObservationSize() const
+    {
+        return GetObservationSize(parameters_.observation_mode);
+    }
+
+    std::vector<double> FlightEnvironment::GetPolicyObservation() const
+    {
+        if (parameters_.observation_mode == ObservationMode::Base)
+        {
+            const auto observation = GetNormalizedRLObservation();
+
+            return std::vector<double>(
+                observation.begin(),
+                observation.end()
+            );
+        }
+
+        if (parameters_.observation_mode == ObservationMode::HoverAugmented)
+        {
+            const auto observation = MakeHoverObservation(
+                GetRLObservation(),
+                parameters_.hover_reward.target_position,
+                parameters_.observation_normalization
+            );
+
+            return std::vector<double>(
+                observation.begin(),
+                observation.end()
+            );
+        }
+
+        throw std::invalid_argument("Unknown observation mode");
     }
 
     const Eigen::Vector3d&

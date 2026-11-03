@@ -104,6 +104,7 @@ add_library(aerial_rl STATIC
     src/rl/training_dataset.cpp
     src/rl/epoch_trainer.cpp
     src/rl/imitation_dataset_collector.cpp
+    src/rl/task_observation.cpp
 )
 
 target_include_directories(aerial_rl
