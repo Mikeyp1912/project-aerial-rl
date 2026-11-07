@@ -49,6 +49,7 @@ def make_environment(
     horizontal_action_weight: float,
     altitude_action_weight: float,
     yaw_action_weight: float,
+    target_error_scale: float,
 ):
     def initialize():
         env = AerialDroneEnv(
@@ -72,6 +73,7 @@ def make_environment(
             task=aerial_sim.FlightTask.TARGET_TRACKING,
             randomize_target=True,
             maximum_target_offset=(2.0, 2.0, 1.0),
+            target_error_scale=target_error_scale,
         )
 
         return Monitor(env)
@@ -159,7 +161,12 @@ def main():
         default=0.02,
     )
    
-
+    parser.add_argument(
+        "--target-error-scale",
+        type=float,
+        default=2.0,
+        help="Normalization scale for target-relative position errors",
+    )
     args = parser.parse_args()
 
     if args.timesteps <= 0:
@@ -184,6 +191,12 @@ def main():
         value < 0 for value in args.linear_drag
     ):
         parser.error("--linear-drag must contain nonnegative finite values")
+
+    if (
+        not np.isfinite(args.target_error_scale)
+        or args.target_error_scale <= 0.0
+    ):
+        parser.error("--target-error-scale must be finite and positive")
 
     for name in (
         "horizontal_action_weight",
@@ -234,6 +247,7 @@ def main():
         "horizontal_action_weight": 0.0,
         "altitude_action_weight": 0.0,
         "yaw_action_weight": 0.0,
+        "target_error_scale": args.target_error_scale,
     }
 
     (args.output / "configuration.json").write_text(
@@ -250,6 +264,7 @@ def main():
             args.horizontal_action_weight,
             args.altitude_action_weight,
             args.yaw_action_weight,
+            target_error_scale=args.target_error_scale,
         )
     ])
 
@@ -294,6 +309,7 @@ def main():
         print(f"Linear drag:      {linear_drag}")
         print(f"Horizontal range: ±{args.horizontal_offset:.2f} m")
         print(f"Altitude range:   ±{args.altitude_offset:.2f} m")
+        print(f"Target error scale: {args.target_error_scale:.2f} m")
         print(f"Output:           {args.output}")
         print("=" * 60)
 
