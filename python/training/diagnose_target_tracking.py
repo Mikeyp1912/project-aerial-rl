@@ -14,7 +14,9 @@ from stable_baselines3 import PPO
 from aerial_rl.environment import AerialDroneEnv
 
 
-def make_environment():
+def make_environment(
+    target_error_scale=2.0,
+):
     return AerialDroneEnv(
         maximum_episode_time=10.0,
         randomize_initial_state=True,
@@ -34,6 +36,8 @@ def make_environment():
         horizontal_action_weight=0.0,
         altitude_action_weight=0.0,
         yaw_action_weight=0.0,
+        target_error_scale=target_error_scale,
+        reward_mode=aerial_sim.RewardMode.BOUNDED_TARGET_TRACKING,
     )
 
 
@@ -197,16 +201,12 @@ def main():
         parser.error("--episodes must be greater than 1")
 
     checkpoints = {
-        "PPO 200k": Path(
-            "training_results/ppo_target_tracking_200k/"
+        "PPO quadratic scale 2": Path(
+            "training_results/ppo_target_tracking_scale2_1m/"
             "ppo_target_final.zip"
         ),
-        "PPO 300k": Path(
-            "training_results/ppo_target_tracking_1m/"
-            "ppo_target_300704_steps.zip"
-        ),
-        "PPO 1m": Path(
-            "training_results/ppo_target_tracking_1m/"
+        "PPO bounded 100k": Path(
+            "training_results/ppo_target_bounded_100k/"
             "ppo_target_final.zip"
         ),
     }
