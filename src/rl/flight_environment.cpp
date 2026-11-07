@@ -104,6 +104,26 @@ namespace aerial::rl
         // Reject invalid observation configurations.
         (void)GetObservationSize(parameters_.observation_mode);
 
+        switch (parameters_.task)
+        {
+            case FlightTask::Hover:
+            case FlightTask::TargetTracking:
+                break;
+
+            default:
+                throw std::invalid_argument("Unknown flight task");
+        }
+
+        const auto& tracking = parameters_.target_tracking;
+
+        if (!tracking.maximum_target_offset.allFinite() ||
+            (tracking.maximum_target_offset.array() < 0.0).any())
+        {
+            throw std::invalid_argument(
+                "Target offsets must be finite and non-negative"
+            );
+        }
+
         Reset();
     }
 

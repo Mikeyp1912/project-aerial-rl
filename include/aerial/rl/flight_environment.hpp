@@ -16,6 +16,7 @@
 #include "aerial/rl/episode_statistics.hpp"
 #include "aerial/rl/observation_normalizer.hpp"
 #include "aerial/rl/task_observation.hpp"
+#include "aerial/rl/task_config.hpp"
 
 namespace aerial::rl
 {
@@ -75,6 +76,10 @@ namespace aerial::rl
         ActionRegularizationParameters action_regularization;
 
         ObservationMode observation_mode = ObservationMode::Base;
+
+        FlightTask task = FlightTask::Hover;
+
+        TargetTrackingParameters target_tracking;
     };
 
     struct FlightStepResult
