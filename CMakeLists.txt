@@ -105,6 +105,7 @@ add_library(aerial_rl STATIC
     src/rl/epoch_trainer.cpp
     src/rl/imitation_dataset_collector.cpp
     src/rl/task_observation.cpp
+    src/rl/target_tracking_reward.cpp
 )
 
 target_include_directories(aerial_rl
@@ -1376,6 +1377,23 @@ if(BUILD_TESTING)
     add_test(
         NAME task_observation
         COMMAND task_observation_test
+    )
+
+    add_executable(target_tracking_reward_test
+        tests/target_tracking_reward_test.cpp
+    )
+
+    target_link_libraries(target_tracking_reward_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(target_tracking_reward_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME target_tracking_reward
+        COMMAND target_tracking_reward_test
     )
 
 endif()
