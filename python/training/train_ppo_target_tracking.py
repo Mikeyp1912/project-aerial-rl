@@ -26,6 +26,13 @@ class CheckpointCallback(BaseCallback):
         self.interval = interval
         self.next_checkpoint = interval
 
+    def _on_training_start(self) -> None:
+        current = self.model.num_timesteps
+
+        self.next_checkpoint = (
+            (current // self.interval) + 1
+        ) * self.interval
+
     def _on_step(self) -> bool:
         if self.num_timesteps >= self.next_checkpoint:
             path = self.output_dir / (
@@ -193,6 +200,13 @@ def main():
         help="PPO discount factor per policy step",
     )
 
+    parser.add_argument(
+        "--resume-from",
+        type=Path,
+        default=None,
+        help="Existing PPO checkpoint to continue training",
+    )
+
     args = parser.parse_args()
 
     reward_mode = (
@@ -249,6 +263,41 @@ def main():
                 "finite and nonnegative"
             )
 
+    if args.resume_from is not None:
+        if not args.resume_from.is_file():
+            parser.error(
+                f"Checkpoint not found: {args.resume_from}"
+            )
+
+        previous_config_path = (
+            args.resume_from.parent / "configuration.json"
+        )
+
+        if not previous_config_path.is_file():
+            parser.error(
+                "Resume requires the original configuration.json"
+            )
+
+        previous = json.loads(previous_config_path.read_text())
+
+        expected = {
+            "episode_duration": args.episode_duration,
+            "maximum_horizontal_offset": args.horizontal_offset,
+            "maximum_altitude_offset": args.altitude_offset,
+            "linear_drag": list(args.linear_drag),
+            "target_error_scale": args.target_error_scale,
+            "reward_mode": args.reward_mode,
+            "action_repeat": args.action_repeat,
+            "gamma": args.gamma,
+        }
+
+        for key, value in expected.items():
+            if previous.get(key) != value:
+                parser.error(
+                    f"Resume configuration mismatch: {key}. "
+                    f"Previous={previous.get(key)}, requested={value}"
+                )
+
     args.output.mkdir(parents=True, exist_ok=True)
 
     linear_drag = tuple(args.linear_drag)
@@ -292,9 +341,13 @@ def main():
         "policy_frequency_hz": 120.0 / args.action_repeat,
     }
 
-    (args.output / "configuration.json").write_text(
-        json.dumps(configuration, indent=4) + "\n"
+    configuration["resume_from"] = (
+        str(args.resume_from)
+        if args.resume_from is not None
+        else None
     )
+
+    configuration["additional_timesteps"] = args.timesteps
 
     env = DummyVecEnv([
         make_environment(
@@ -323,21 +376,56 @@ def main():
         )
 
     try:
-        model = PPO(
-            policy="MlpPolicy",
-            env=env,
-            learning_rate=1e-4,
-            n_steps=1024,
-            batch_size=64,
-            n_epochs=5,
-            gamma=args.gamma,
-            gae_lambda=0.95,
-            clip_range=0.1,
-            ent_coef=0.0,
-            verbose=1,
-            device="cpu",
-            seed=args.seed,
-            tensorboard_log=str(args.output / "tensorboard"),
+        if args.resume_from is not None:
+            model = PPO.load(
+                str(args.resume_from),
+                env=env,
+                device="cpu",
+                tensorboard_log=str(args.output / "tensorboard"),
+            )
+
+            if model.observation_space != env.observation_space:
+                raise ValueError("Observation space mismatch")
+
+            if model.action_space != env.action_space:
+                raise ValueError("Action space mismatch")
+
+            if not np.isclose(model.gamma, args.gamma):
+                raise ValueError("PPO gamma mismatch")
+
+            initial_steps = model.num_timesteps
+
+            print(
+                f"\nResuming PPO from {initial_steps:,} steps"
+            )
+
+        else:
+            model = PPO(
+                policy="MlpPolicy",
+                env=env,
+                learning_rate=1e-4,
+                n_steps=1024,
+                batch_size=64,
+                n_epochs=5,
+                gamma=args.gamma,
+                gae_lambda=0.95,
+                clip_range=0.1,
+                ent_coef=0.0,
+                verbose=1,
+                device="cpu",
+                seed=args.seed,
+                tensorboard_log=str(args.output / "tensorboard"),
+            )
+
+            initial_steps = 0
+
+        configuration["initial_timesteps"] = initial_steps
+        configuration["requested_total_timesteps"] = (
+            initial_steps + args.timesteps
+        )
+
+        (args.output / "configuration.json").write_text(
+            json.dumps(configuration, indent=4) + "\n"
         )
 
         callback = CheckpointCallback(
@@ -360,8 +448,19 @@ def main():
         model.learn(
             total_timesteps=args.timesteps,
             callback=callback,
-            tb_log_name="PPO_wind",
+            tb_log_name="PPO_target_tracking",
+            reset_num_timesteps=(
+                args.resume_from is None
+            ),
             progress_bar=True,
+        )
+
+        configuration["completed_total_timesteps"] = (
+            model.num_timesteps
+        )
+
+        (args.output / "configuration.json").write_text(
+            json.dumps(configuration, indent=4) + "\n"
         )
 
         final_path = args.output / "ppo_target_final"
