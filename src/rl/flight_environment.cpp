@@ -51,6 +51,16 @@ namespace aerial::rl
 
         ValidateEpisodeTerminationParameters(parameters_.termination);
 
+        switch (parameters_.reward_mode)
+        {
+            case RewardMode::QuadraticHover:
+            case RewardMode::BoundedTargetTracking:
+                break;
+
+            default:
+                throw std::invalid_argument("Unknown reward mode");
+        }
+
         ValidateObservationNormalizationParameters(parameters_.observation_normalization);
 
         const auto& randomization = parameters_.initial_state_randomization;
@@ -79,6 +89,13 @@ namespace aerial::rl
         {
             throw std::invalid_argument(
                 "Invalid aerodynamic drag coefficients"
+            );
+        }
+
+        if (parameters_.reward_mode == RewardMode::BoundedTargetTracking)
+        {
+            ValidateTargetTrackingRewardParameters(
+                parameters_.target_tracking_reward
             );
         }
 
@@ -359,15 +376,38 @@ namespace aerial::rl
             result.reward = parameters_.termination.failure_penalty;
         }
         else {
-            auto reward_parameters = parameters_.hover_reward;
-            reward_parameters.target_position = target_position_;
+            switch (parameters_.reward_mode)
+            {
+                case RewardMode::QuadraticHover:
+                {
+                    auto reward_parameters = parameters_.hover_reward;
+                    reward_parameters.target_position = target_position_;
 
-            result.reward_components = CalculateHoverReward(
-                true_state,
-                reward_parameters
-            );
+                    result.reward_components = CalculateHoverReward(
+                        true_state,
+                        reward_parameters
+                    );
 
-            result.reward = result.reward_components.total;
+                    result.reward = result.reward_components.total;
+                    break;
+                }
+
+                case RewardMode::BoundedTargetTracking:
+                {
+                    result.reward = CalculateTargetTrackingReward(
+                        true_state,
+                        target_position_,
+                        parameters_.target_tracking_reward
+                    );
+
+                    // Hover reward components are not applicable to this mode.
+                    result.reward_components = {};
+                    break;
+                }
+
+                default:
+                    throw std::logic_error("Unknown reward mode");
+            }
 
             result.action_penalty = action_penalty;
 

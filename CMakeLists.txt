@@ -1396,4 +1396,21 @@ if(BUILD_TESTING)
         COMMAND target_tracking_reward_test
     )
 
+    add_executable(rl_reward_mode_test
+        tests/rl_reward_mode_test.cpp
+    )
+
+    target_link_libraries(rl_reward_mode_test
+        PRIVATE aerial_rl
+    )
+
+    target_compile_options(rl_reward_mode_test
+        PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG
+    )
+
+    add_test(
+        NAME rl_reward_mode
+        COMMAND rl_reward_mode_test
+    )
+
 endif()

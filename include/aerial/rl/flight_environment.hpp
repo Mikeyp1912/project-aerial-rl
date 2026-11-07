@@ -17,6 +17,7 @@
 #include "aerial/rl/observation_normalizer.hpp"
 #include "aerial/rl/task_observation.hpp"
 #include "aerial/rl/task_config.hpp"
+#include "aerial/rl/target_tracking_reward.hpp"
 
 namespace aerial::rl
 {
@@ -48,6 +49,12 @@ namespace aerial::rl
         double yaw_weight = 0.0;
     };
 
+    enum class RewardMode
+    {
+        QuadraticHover,
+        BoundedTargetTracking
+    };
+
     struct FlightEnvironmentParameters
     {
         double time_step = 1.0 / 120.0;
@@ -60,6 +67,10 @@ namespace aerial::rl
         PIDTargetActionParameters pid_targets;
 
         HoverRewardParameters hover_reward;
+
+        RewardMode reward_mode = RewardMode::QuadraticHover;
+
+        TargetTrackingRewardParameters target_tracking_reward;
 
         EpisodeTerminationParameters termination;
 

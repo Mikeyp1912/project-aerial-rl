@@ -8,6 +8,36 @@
 
 namespace aerial::rl
 {
+    void ValidateTargetTrackingRewardParameters(
+        const TargetTrackingRewardParameters& parameters
+    )
+    {
+        if (!std::isfinite(parameters.position_sigma) ||
+            parameters.position_sigma <= 0.0)
+        {
+            throw std::invalid_argument(
+                "Position sigma must be finite and positive"
+            );
+        }
+
+        const double weights[] = {
+            parameters.position_weight,
+            parameters.velocity_weight,
+            parameters.tilt_weight,
+            parameters.angular_velocity_weight
+        };
+
+        for (const double weight : weights)
+        {
+            if (!std::isfinite(weight) || weight < 0.0)
+            {
+                throw std::invalid_argument(
+                    "Reward weights must be finite and non-negative"
+                );
+            }
+        }
+    }
+
     double CalculateTargetTrackingReward(
         const physics::DroneState& state,
         const Eigen::Vector3d& target_position,
@@ -26,30 +56,7 @@ namespace aerial::rl
             );
         }
 
-        const double weights[] = {
-            parameters.position_weight,
-            parameters.velocity_weight,
-            parameters.tilt_weight,
-            parameters.angular_velocity_weight
-        };
-
-        if (!std::isfinite(parameters.position_sigma) ||
-            parameters.position_sigma <= 0.0)
-        {
-            throw std::invalid_argument(
-                "Position sigma must be finite and positive"
-            );
-        }
-
-        for (double weight : weights)
-        {
-            if (!std::isfinite(weight) || weight < 0.0)
-            {
-                throw std::invalid_argument(
-                    "Reward weights must be finite and non-negative"
-                );
-            }
-        }
+        ValidateTargetTrackingRewardParameters(parameters);
 
         const double squared_error =
             (state.position - target_position).squaredNorm();

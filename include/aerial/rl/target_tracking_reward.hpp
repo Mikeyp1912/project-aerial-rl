@@ -22,4 +22,8 @@ namespace aerial::rl
         const Eigen::Vector3d& target_position,
         const TargetTrackingRewardParameters& parameters = {}
     );
+
+    void ValidateTargetTrackingRewardParameters(
+        const TargetTrackingRewardParameters& parameters
+    );
 }
