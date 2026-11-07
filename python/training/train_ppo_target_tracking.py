@@ -59,6 +59,7 @@ def make_environment(
     target_error_scale: float,
     reward_mode: aerial_sim.RewardMode,
     action_repeat: int,
+    reward_velocity_weight: float,
 ):
     def initialize():
         env = AerialDroneEnv(
@@ -85,6 +86,7 @@ def make_environment(
             target_error_scale=target_error_scale,
             reward_mode=reward_mode,
             action_repeat=action_repeat,
+            reward_velocity_weight=reward_velocity_weight,
         )
 
         return Monitor(env)
@@ -187,6 +189,13 @@ def main():
     )
 
     parser.add_argument(
+        "--reward-velocity-weight",
+        type=float,
+        default=0.02,
+        help="Penalty weight for squared velocity in bounded reward",
+    )
+
+    parser.add_argument(
         "--action-repeat",
         type=int,
         default=1,
@@ -250,6 +259,14 @@ def main():
     if not 0.0 < args.gamma <= 1.0:
         parser.error("--gamma must be in (0, 1]")
     
+    if (
+        not np.isfinite(args.reward_velocity_weight)
+        or args.reward_velocity_weight < 0.0
+    ):
+        parser.error(
+            "--reward-velocity-weight must be finite and nonnegative"
+        )
+
     for name in (
         "horizontal_action_weight",
         "altitude_action_weight",
@@ -292,7 +309,12 @@ def main():
         }
 
         for key, value in expected.items():
-            if previous.get(key) != value:
+            previous_value = previous.get(
+                key,
+                0.02 if key == "reward_velocity_weight" else None,
+            )
+
+            if previous_value != value:
                 parser.error(
                     f"Resume configuration mismatch: {key}. "
                     f"Previous={previous.get(key)}, requested={value}"
@@ -339,6 +361,7 @@ def main():
         "action_repeat": args.action_repeat,
         "physics_frequency_hz": 120.0,
         "policy_frequency_hz": 120.0 / args.action_repeat,
+        "reward_velocity_weight": args.reward_velocity_weight,
     }
 
     configuration["resume_from"] = (
@@ -362,6 +385,7 @@ def main():
             target_error_scale=args.target_error_scale,
             reward_mode=reward_mode,
             action_repeat=args.action_repeat,
+            reward_velocity_weight=args.reward_velocity_weight,
         )
     ])
 
