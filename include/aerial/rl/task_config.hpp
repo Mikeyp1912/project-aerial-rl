@@ -16,7 +16,8 @@ namespace aerial::rl
 
     struct TargetTrackingParameters
     {
-        // Random target selection will be implemented in 7.8.2.
+       
+        // Randomize the target once at the beginning of each episode.
         bool randomize_target = false;
 
         // Maximum offset from the configured reference position.

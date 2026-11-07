@@ -1335,4 +1335,25 @@ if(BUILD_TESTING)
         COMMAND aerodynamic_wind_force_test
     )
 
+    add_executable(target_tracking_test
+        tests/target_tracking_test.cpp
+    )
+
+    target_link_libraries(target_tracking_test
+        PRIVATE
+            aerial_rl
+    )
+
+    target_compile_options(target_tracking_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+    )
+
+    add_test(
+        NAME target_tracking
+        COMMAND target_tracking_test
+    )
+
 endif()

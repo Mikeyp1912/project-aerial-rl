@@ -134,8 +134,14 @@ namespace aerial::rl
 
             std::size_t GetPolicyObservationSize() const;
 
+            const Eigen::Vector3d& GetTargetPosition() const;
+
         private:
             FlightEnvironmentParameters parameters_;
+
+            Eigen::Vector3d target_position_{
+                0.0, 0.0, 2.0
+            };
 
             physics::Simulation simulation_;
             sensors::SensorScheduler sensors_;

@@ -5,6 +5,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <random>
+#include <algorithm>
 
 #include "aerial/physics/drone_state.hpp"
 #include "aerial/rl/observation.hpp"
@@ -131,6 +132,34 @@ namespace aerial::rl
 
     void FlightEnvironment::Reset(std::uint32_t seed)
     {
+        // Start each episode with the configured reference target.
+        target_position_ = parameters_.hover_reward.target_position;
+
+        if (parameters_.task == FlightTask::TargetTracking &&
+            parameters_.target_tracking.randomize_target)
+        {
+            // Independent RNG so target generation does not change
+            // initial-state or wind randomization.
+            std::mt19937 target_generator(seed ^ 0xA341316Cu);
+
+            std::uniform_real_distribution<double> distribution(
+                -1.0, 1.0
+            );
+
+            const auto& offsets =
+                parameters_.target_tracking.maximum_target_offset;
+
+            for (int axis = 0; axis < 3; ++axis)
+            {
+                target_position_[axis] +=
+                    distribution(target_generator) * offsets[axis];
+            }
+
+            // Keep the target above ground level.
+            target_position_.z() =
+                std::max(target_position_.z(), 0.5);
+        }
+
         const auto& randomization =
             parameters_.initial_state_randomization;
 
@@ -449,4 +478,12 @@ namespace aerial::rl
     {
         return simulation_.GetWindVelocity();
     }
+
+    const Eigen::Vector3d&
+    FlightEnvironment::GetTargetPosition() const
+    {
+        return target_position_;
+    }
 }
+
+
