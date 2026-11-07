@@ -43,6 +43,11 @@ class AerialDroneEnv(gym.Env):
         observation_mode: aerial_sim.ObservationMode = (
             aerial_sim.ObservationMode.BASE
         ),
+        task: aerial_sim.FlightTask = aerial_sim.FlightTask.HOVER,
+        randomize_target: bool = False,
+        maximum_target_offset: tuple[float, float, float] = (
+            2.0, 2.0, 1.0
+        ),
     ):
         super().__init__()
 
@@ -64,6 +69,9 @@ class AerialDroneEnv(gym.Env):
             altitude_action_weight=altitude_action_weight,
             yaw_action_weight=yaw_action_weight,
             observation_mode=observation_mode,
+            task=task,
+            randomize_target=randomize_target,
+            maximum_target_offset=maximum_target_offset,
         )
 
         observation_size = self.simulator.get_observation_size()
@@ -117,6 +125,10 @@ class AerialDroneEnv(gym.Env):
                     self.simulator.get_wind_velocity(),
                     dtype=np.float64,
                 ),
+                "target_position": np.asarray(
+                    self.simulator.get_target_position(),
+                    dtype=np.float64,
+                ),
             },
         )
 
@@ -160,6 +172,10 @@ class AerialDroneEnv(gym.Env):
             ),
             "wind_velocity": np.asarray(
                 self.simulator.get_wind_velocity(),
+                dtype=np.float64,
+            ),
+            "target_position": np.asarray(
+                self.simulator.get_target_position(),
                 dtype=np.float64,
             ),
         }

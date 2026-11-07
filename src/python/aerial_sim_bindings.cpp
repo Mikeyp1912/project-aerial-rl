@@ -39,7 +39,12 @@ namespace
             double altitude_action_weight = 0.0,
             double yaw_action_weight = 0.0,
             aerial::rl::ObservationMode observation_mode =
-                aerial::rl::ObservationMode::Base
+                aerial::rl::ObservationMode::Base,
+            aerial::rl::FlightTask task =
+                aerial::rl::FlightTask::Hover,
+            bool randomize_target = false,
+            std::array<double, 3> maximum_target_offset =
+                {2.0, 2.0, 1.0}
         )
         {
             aerial::rl::FlightEnvironmentParameters parameters;
@@ -81,6 +86,18 @@ namespace
                 yaw_action_weight;
 
             parameters.observation_mode = observation_mode;
+
+            parameters.task = task;
+
+            parameters.target_tracking.randomize_target =
+                randomize_target;
+
+            parameters.target_tracking.maximum_target_offset =
+                Eigen::Vector3d(
+                    maximum_target_offset[0],
+                    maximum_target_offset[1],
+                    maximum_target_offset[2]
+                );
 
             auto& randomization =
                 parameters.initial_state_randomization;
@@ -152,6 +169,18 @@ namespace
                 position.x(),
                 position.y(),
                 position.z()
+            };
+        }
+
+        std::array<double, 3> GetTargetPosition() const
+        {
+            const auto& target =
+                environment_->GetTargetPosition();
+
+            return {
+                target.x(),
+                target.y(),
+                target.z()
             };
         }
 
@@ -242,6 +271,19 @@ PYBIND11_MODULE(aerial_sim, module)
         )
         .export_values();
 
+    py::enum_<aerial::rl::FlightTask>(
+        module, "FlightTask"
+    )
+        .value(
+            "HOVER",
+            aerial::rl::FlightTask::Hover
+        )
+        .value(
+            "TARGET_TRACKING",
+            aerial::rl::FlightTask::TargetTracking
+        )
+        .export_values();
+
     py::class_<PythonFlightEnvironment>(
         module, "FlightEnvironment"
     )
@@ -263,7 +305,10 @@ PYBIND11_MODULE(aerial_sim, module)
                 double,
                 double,
                 double,
-                aerial::rl::ObservationMode
+                aerial::rl::ObservationMode,
+                aerial::rl::FlightTask,
+                bool,
+                std::array<double, 3>
             >(),
             py::arg("time_step") = 1.0 / 120.0,
             py::arg("maximum_episode_time") = 20.0,
@@ -286,7 +331,12 @@ PYBIND11_MODULE(aerial_sim, module)
             py::arg("altitude_action_weight") = 0.0,
             py::arg("yaw_action_weight") = 0.0,
             py::arg("observation_mode") =
-                aerial::rl::ObservationMode::Base
+                aerial::rl::ObservationMode::Base,
+            py::arg("task") =
+                aerial::rl::FlightTask::Hover,
+            py::arg("randomize_target") = false,
+            py::arg("maximum_target_offset") =
+                std::array<double, 3>{2.0, 2.0, 1.0}
         )
         .def(
             "reset",
@@ -309,6 +359,10 @@ PYBIND11_MODULE(aerial_sim, module)
         .def(
             "get_position",
             &PythonFlightEnvironment::GetPosition
+        )
+        .def(
+            "get_target_position",
+            &PythonFlightEnvironment::GetTargetPosition
         )
         .def(
             "get_velocity",
