@@ -45,7 +45,14 @@ namespace
             bool randomize_target = false,
             std::array<double, 3> maximum_target_offset =
                 {2.0, 2.0, 1.0},
-            double target_error_scale = 10.0
+            double target_error_scale = 10.0,
+            aerial::rl::RewardMode reward_mode =
+                aerial::rl::RewardMode::QuadraticHover,
+            double reward_position_sigma = 1.0,
+            double reward_position_weight = 1.0,
+            double reward_velocity_weight = 0.02,
+            double reward_tilt_weight = 0.05,
+            double reward_angular_velocity_weight = 0.01
         )
         {
             aerial::rl::FlightEnvironmentParameters parameters;
@@ -101,6 +108,23 @@ namespace
                 );
 
             parameters.observation_normalization.target_error_scale = target_error_scale;
+
+            parameters.reward_mode = reward_mode;
+
+            parameters.target_tracking_reward.position_sigma =
+                reward_position_sigma;
+
+            parameters.target_tracking_reward.position_weight =
+                reward_position_weight;
+
+            parameters.target_tracking_reward.velocity_weight =
+                reward_velocity_weight;
+
+            parameters.target_tracking_reward.tilt_weight =
+                reward_tilt_weight;
+
+            parameters.target_tracking_reward.angular_velocity_weight =
+                reward_angular_velocity_weight;
 
             auto& randomization =
                 parameters.initial_state_randomization;
@@ -287,6 +311,19 @@ PYBIND11_MODULE(aerial_sim, module)
         )
         .export_values();
 
+    py::enum_<aerial::rl::RewardMode>(
+        module, "RewardMode"
+    )
+        .value(
+            "QUADRATIC_HOVER",
+            aerial::rl::RewardMode::QuadraticHover
+        )
+        .value(
+            "BOUNDED_TARGET_TRACKING",
+            aerial::rl::RewardMode::BoundedTargetTracking
+        )
+        .export_values();
+
     py::class_<PythonFlightEnvironment>(
         module, "FlightEnvironment"
     )
@@ -312,6 +349,12 @@ PYBIND11_MODULE(aerial_sim, module)
                 aerial::rl::FlightTask,
                 bool,
                 std::array<double, 3>,
+                double,
+                aerial::rl::RewardMode,
+                double,
+                double,
+                double,
+                double,
                 double
             >(),
             py::arg("time_step") = 1.0 / 120.0,
@@ -341,7 +384,14 @@ PYBIND11_MODULE(aerial_sim, module)
             py::arg("randomize_target") = false,
             py::arg("maximum_target_offset") =
                 std::array<double, 3>{2.0, 2.0, 1.0},
-            py::arg("target_error_scale") = 10.0
+            py::arg("target_error_scale") = 10.0,
+            py::arg("reward_mode") =
+                aerial::rl::RewardMode::QuadraticHover,
+            py::arg("reward_position_sigma") = 1.0,
+            py::arg("reward_position_weight") = 1.0,
+            py::arg("reward_velocity_weight") = 0.02,
+            py::arg("reward_tilt_weight") = 0.05,
+            py::arg("reward_angular_velocity_weight") = 0.01
         )
         .def(
             "reset",

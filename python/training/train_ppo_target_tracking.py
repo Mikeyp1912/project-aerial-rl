@@ -50,6 +50,7 @@ def make_environment(
     altitude_action_weight: float,
     yaw_action_weight: float,
     target_error_scale: float,
+    reward_mode: aerial_sim.RewardMode,
 ):
     def initialize():
         env = AerialDroneEnv(
@@ -74,6 +75,7 @@ def make_environment(
             randomize_target=True,
             maximum_target_offset=(2.0, 2.0, 1.0),
             target_error_scale=target_error_scale,
+            reward_mode=reward_mode,
         )
 
         return Monitor(env)
@@ -167,7 +169,21 @@ def main():
         default=2.0,
         help="Normalization scale for target-relative position errors",
     )
+
+    parser.add_argument(
+        "--reward-mode",
+        choices=("quadratic", "bounded"),
+        default="quadratic",
+        help="Reward function used during PPO training",
+    )
+
     args = parser.parse_args()
+
+    reward_mode = (
+        aerial_sim.RewardMode.BOUNDED_TARGET_TRACKING
+        if args.reward_mode == "bounded"
+        else aerial_sim.RewardMode.QUADRATIC_HOVER
+    )
 
     if args.timesteps <= 0:
         parser.error("--timesteps must be positive")
@@ -248,6 +264,7 @@ def main():
         "altitude_action_weight": 0.0,
         "yaw_action_weight": 0.0,
         "target_error_scale": args.target_error_scale,
+        "reward_mode": args.reward_mode,
     }
 
     (args.output / "configuration.json").write_text(
@@ -265,6 +282,7 @@ def main():
             args.altitude_action_weight,
             args.yaw_action_weight,
             target_error_scale=args.target_error_scale,
+            reward_mode=reward_mode,
         )
     ])
 

@@ -49,7 +49,15 @@ class AerialDroneEnv(gym.Env):
             2.0, 2.0, 1.0
         ),
         target_error_scale: float = 10.0,
-    ):
+        reward_mode: aerial_sim.RewardMode = (
+            aerial_sim.RewardMode.QUADRATIC_HOVER
+        ),
+        reward_position_sigma: float = 1.0,
+        reward_position_weight: float = 1.0,
+        reward_velocity_weight: float = 0.02,
+        reward_tilt_weight: float = 0.05,
+        reward_angular_velocity_weight: float = 0.01,
+        ):
         super().__init__()
 
         self.simulator = aerial_sim.FlightEnvironment(
@@ -74,6 +82,12 @@ class AerialDroneEnv(gym.Env):
             randomize_target=randomize_target,
             maximum_target_offset=maximum_target_offset,
             target_error_scale=target_error_scale,
+            reward_mode=reward_mode,
+            reward_position_sigma=reward_position_sigma,
+            reward_position_weight=reward_position_weight,
+            reward_velocity_weight=reward_velocity_weight,
+            reward_tilt_weight=reward_tilt_weight,
+            reward_angular_velocity_weight=reward_angular_velocity_weight,
         )
 
         observation_size = self.simulator.get_observation_size()
