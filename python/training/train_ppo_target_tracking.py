@@ -51,6 +51,7 @@ def make_environment(
     yaw_action_weight: float,
     target_error_scale: float,
     reward_mode: aerial_sim.RewardMode,
+    action_repeat: int,
 ):
     def initialize():
         env = AerialDroneEnv(
@@ -76,6 +77,7 @@ def make_environment(
             maximum_target_offset=(2.0, 2.0, 1.0),
             target_error_scale=target_error_scale,
             reward_mode=reward_mode,
+            action_repeat=action_repeat,
         )
 
         return Monitor(env)
@@ -177,6 +179,20 @@ def main():
         help="Reward function used during PPO training",
     )
 
+    parser.add_argument(
+        "--action-repeat",
+        type=int,
+        default=1,
+        help="Physics steps per PPO action",
+    )
+
+    parser.add_argument(
+        "--gamma",
+        type=float,
+        default=0.99,
+        help="PPO discount factor per policy step",
+    )
+
     args = parser.parse_args()
 
     reward_mode = (
@@ -214,6 +230,12 @@ def main():
     ):
         parser.error("--target-error-scale must be finite and positive")
 
+    if args.action_repeat < 1:
+        parser.error("--action-repeat must be positive")
+
+    if not 0.0 < args.gamma <= 1.0:
+        parser.error("--gamma must be in (0, 1]")
+    
     for name in (
         "horizontal_action_weight",
         "altitude_action_weight",
@@ -250,7 +272,7 @@ def main():
         "n_steps": 1024,
         "batch_size": 64,
         "n_epochs": 5,
-        "gamma": 0.99,
+        "gamma": args.gamma,
         "gae_lambda": 0.95,
         "clip_range": 0.1,
         "ent_coef": 0.0,
@@ -265,6 +287,9 @@ def main():
         "yaw_action_weight": 0.0,
         "target_error_scale": args.target_error_scale,
         "reward_mode": args.reward_mode,
+        "action_repeat": args.action_repeat,
+        "physics_frequency_hz": 120.0,
+        "policy_frequency_hz": 120.0 / args.action_repeat,
     }
 
     (args.output / "configuration.json").write_text(
@@ -283,6 +308,7 @@ def main():
             args.yaw_action_weight,
             target_error_scale=args.target_error_scale,
             reward_mode=reward_mode,
+            action_repeat=args.action_repeat,
         )
     ])
 
@@ -304,7 +330,7 @@ def main():
             n_steps=1024,
             batch_size=64,
             n_epochs=5,
-            gamma=0.99,
+            gamma=args.gamma,
             gae_lambda=0.95,
             clip_range=0.1,
             ent_coef=0.0,

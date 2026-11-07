@@ -57,8 +57,18 @@ class AerialDroneEnv(gym.Env):
         reward_velocity_weight: float = 0.02,
         reward_tilt_weight: float = 0.05,
         reward_angular_velocity_weight: float = 0.01,
+        action_repeat: int = 1,
         ):
         super().__init__()
+
+        if isinstance(action_repeat, (bool, np.bool_)) or not isinstance(
+            action_repeat, (int, np.integer)
+        ) or action_repeat < 1:
+            raise ValueError("action_repeat must be a positive integer")
+
+        self.action_repeat = int(action_repeat)
+
+        self.simulator_time_step = float(time_step)
 
         self.simulator = aerial_sim.FlightEnvironment(
             time_step=time_step,
@@ -176,9 +186,22 @@ class AerialDroneEnv(gym.Env):
         # The C++ action adapter expects normalized actions.
         action = np.clip(action, -1.0, 1.0)
 
-        observation, reward, terminated, truncated = (
-            self.simulator.step(action.tolist())
-        )
+        total_reward = 0.0
+        physics_steps = 0
+
+        terminated = False
+        truncated = False
+
+        for _ in range(self.action_repeat):
+            observation, reward, terminated, truncated = (
+                self.simulator.step(action.tolist())
+            )
+
+            total_reward += float(reward)
+            physics_steps += 1
+
+            if terminated or truncated:
+                break
 
         self._episode_finished = bool(terminated or truncated)
 
@@ -194,11 +217,13 @@ class AerialDroneEnv(gym.Env):
                 self.simulator.get_target_position(),
                 dtype=np.float64,
             ),
+            "physics_steps": physics_steps,
+            "elapsed_time": physics_steps * self.simulator_time_step,
         }
 
         return (
             np.asarray(observation, dtype=np.float32),
-            float(reward),
+            float(total_reward),
             bool(terminated),
             bool(truncated),
             info,
