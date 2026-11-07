@@ -125,6 +125,57 @@ namespace aerial::rl
             );
         }
 
+        if (parameters_.task == FlightTask::TargetTracking)
+        {
+            if (!parameters_.hover_reward.target_position.allFinite())
+            {
+                throw std::invalid_argument(
+                    "Target tracking reference position must be finite"
+                );
+            }
+
+            if (parameters_.action_mode == ActionMode::PIDTargets)
+            {
+                const auto& pid = parameters_.pid_targets;
+                const auto& offsets =
+                    parameters_.target_tracking.maximum_target_offset;
+
+                if (pid.reference != PIDTargetReference::WorldRelative ||
+                    !pid.hover_centered_altitude)
+                {
+                    throw std::invalid_argument(
+                        "PID target tracking requires world-relative "
+                        "horizontal targets and hover-centered altitude"
+                    );
+                }
+
+                if (parameters_.target_tracking.randomize_target)
+                {
+                    if (offsets.x() > pid.maximum_horizontal_offset ||
+                        offsets.y() > pid.maximum_horizontal_offset ||
+                        offsets.z() > pid.maximum_altitude_offset)
+                    {
+                        throw std::invalid_argument(
+                            "Random target offsets exceed PID action range"
+                        );
+                    }
+
+                    const double reference_altitude =
+                        parameters_.hover_reward.target_position.z();
+
+                    if (reference_altitude - offsets.z() <
+                            pid.minimum_altitude ||
+                        reference_altitude + offsets.z() >
+                            pid.maximum_altitude)
+                    {
+                        throw std::invalid_argument(
+                            "Random target altitude exceeds PID limits"
+                        );
+                    }
+                }
+            }
+        }
+
         Reset();
     }
 
@@ -295,10 +346,10 @@ namespace aerial::rl
         const auto& true_state = simulation_.GetDroneState();
 
         const auto termination = CheckEpisodeTermination(
-                true_state,
-                parameters_.termination,
-                parameters_.hover_reward.target_position
-                );
+            true_state,
+            parameters_.termination,
+            target_position_
+        );
 
         result.terminated = termination.terminated;
         result.termination_reason = termination.reason;
@@ -308,10 +359,13 @@ namespace aerial::rl
             result.reward = parameters_.termination.failure_penalty;
         }
         else {
+            auto reward_parameters = parameters_.hover_reward;
+            reward_parameters.target_position = target_position_;
+
             result.reward_components = CalculateHoverReward(
-                    true_state,
-                    parameters_.hover_reward
-                    );
+                true_state,
+                reward_parameters
+            );
 
             result.reward = result.reward_components.total;
 
@@ -331,14 +385,14 @@ namespace aerial::rl
             parameters_.maximum_episode_time;
 
         statistics_tracker_.RecordStep(
-                true_state,
-                parameters_.hover_reward.target_position,
-                result.reward,
-                simulation_.GetSimulationTime(),
-                result.terminated,
-                result.truncated,
-                result.termination_reason
-                );
+            true_state,
+            target_position_,
+            result.reward,
+            simulation_.GetSimulationTime(),
+            result.terminated,
+            result.truncated,
+            result.termination_reason
+        );
 
         episode_finished_ = result.terminated || result.truncated;
 
@@ -460,7 +514,7 @@ namespace aerial::rl
         {
             const auto observation = MakeHoverObservation(
                 GetRLObservation(),
-                parameters_.hover_reward.target_position,
+                target_position_,
                 parameters_.observation_normalization
             );
 

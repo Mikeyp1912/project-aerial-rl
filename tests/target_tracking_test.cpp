@@ -4,9 +4,10 @@
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
-
+#include <algorithm>
 
 #include "aerial/rl/flight_environment.hpp"
+#include "aerial/rl/hover_reward.hpp"
 
 int main()
 {
@@ -122,6 +123,97 @@ int main()
     }
 
     assert(rejected);
+
+    {
+        FlightEnvironmentParameters config;
+
+        config.task = FlightTask::TargetTracking;
+        config.target_tracking.randomize_target = true;
+
+        FlightEnvironment tracking(config);
+
+        tracking.Reset(123);
+
+        const Eigen::Vector3d target =
+            tracking.GetTargetPosition();
+
+        const auto result = tracking.Step(
+            aerial::physics::MotorCommands{0.0, 0.0, 0.0, 0.0}
+        );
+
+        auto expected_parameters = config.hover_reward;
+        expected_parameters.target_position = target;
+
+        const auto expected = CalculateHoverReward(
+            tracking.GetTrueState(),
+            expected_parameters
+        );
+
+        assert(std::abs(result.reward - expected.total) < 1e-10);
+    }
+
+    {
+        FlightEnvironmentParameters config;
+
+        config.task = FlightTask::TargetTracking;
+        config.observation_mode = ObservationMode::HoverAugmented;
+        config.target_tracking.randomize_target = true;
+
+        FlightEnvironment tracking(config);
+
+        tracking.Reset(456);
+
+        const auto observation = tracking.GetPolicyObservation();
+        const auto raw = tracking.GetRLObservation();
+        const auto target = tracking.GetTargetPosition();
+
+        assert(observation.size() == 19);
+
+        const double scale =
+            config.observation_normalization.position_scale;
+
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            double expected =
+                (raw[axis] - target[axis]) / scale;
+
+            if (config.observation_normalization.clip)
+            {
+                expected = std::clamp(expected, -1.0, 1.0);
+            }
+
+            assert(std::abs(
+                observation[16 + axis] - expected
+            ) < 1e-10);
+        }
+    }
+
+    {
+        FlightEnvironmentParameters config;
+
+        config.task = FlightTask::TargetTracking;
+        config.action_mode = ActionMode::PIDTargets;
+        config.target_tracking.randomize_target = true;
+
+        config.pid_targets.reference =
+            PIDTargetReference::WorldRelative;
+
+        config.pid_targets.hover_centered_altitude = true;
+        config.pid_targets.maximum_horizontal_offset = 1.0;
+
+        bool rejected = false;
+
+        try
+        {
+            FlightEnvironment invalid(config);
+        }
+        catch (const std::invalid_argument&)
+        {
+            rejected = true;
+        }
+
+        assert(rejected);
+    }
 
     std::cout << "Target tracking tests PASSED.\n";
     return 0;
