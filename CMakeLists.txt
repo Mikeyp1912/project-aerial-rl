@@ -1356,4 +1356,26 @@ if(BUILD_TESTING)
         COMMAND target_tracking_test
     )
 
+    add_executable(task_observation_test
+        tests/task_observation_test.cpp
+    )
+
+    target_link_libraries(task_observation_test
+        PRIVATE
+            aerial_rl
+    )
+
+    target_compile_options(task_observation_test
+        PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -UNDEBUG
+    )
+
+    add_test(
+        NAME task_observation
+        COMMAND task_observation_test
+    )
+
 endif()

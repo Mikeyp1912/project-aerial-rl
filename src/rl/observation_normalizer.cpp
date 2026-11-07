@@ -9,19 +9,25 @@
 namespace aerial::rl
 {
     void ValidateObservationNormalizationParameters(
-            const ObservationNormalizationParameters& parameters
-            )
+        const ObservationNormalizationParameters& parameters
+    )
     {
         const double scales[] = {
             parameters.position_scale,
+            parameters.target_error_scale,
             parameters.velocity_scale,
             parameters.angular_velocity_scale,
             parameters.acceleration_scale
         };
 
-        for (const double scale : scales) {
-            if (!std::isfinite(scale) || scale <= 0.0) {
-                throw std::invalid_argument("Observation normalization scales must be finite and positive");
+        for (const double scale : scales)
+        {
+            if (!std::isfinite(scale) || scale <= 0.0)
+            {
+                throw std::invalid_argument(
+                    "Observation normalization scales must be "
+                    "finite and positive"
+                );
             }
         }
     }

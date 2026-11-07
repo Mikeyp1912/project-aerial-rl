@@ -85,5 +85,59 @@ int main()
 
     assert(base_environment.GetPolicyObservation().size() == 16);
 
+    // Target-error scaling is independent of world-position scaling.
+    ObservationNormalizationParameters tracking_normalization;
+    tracking_normalization.target_error_scale = 2.0;
+
+    Observation tracking_base{};
+    tracking_base[0] = 1.0;
+    tracking_base[1] = -1.0;
+    tracking_base[2] = 2.5;
+    tracking_base[6] = 1.0;
+
+    const auto tracking_observation = MakeHoverObservation(
+        tracking_base,
+        Eigen::Vector3d(0.0, 0.0, 2.0),
+        tracking_normalization
+    );
+
+    assert(std::abs(tracking_observation[16] - 0.5) < 1e-12);
+    assert(std::abs(tracking_observation[17] + 0.5) < 1e-12);
+    assert(std::abs(tracking_observation[18] - 0.25) < 1e-12);
+
+    // World position still uses the original 10 m scale.
+    assert(std::abs(tracking_observation[0] - 0.1) < 1e-12);
+    assert(std::abs(tracking_observation[1] + 0.1) < 1e-12);
+    assert(std::abs(tracking_observation[2] - 0.25) < 1e-12);
+
+    // Target errors should respect clipping.
+    tracking_base[0] = 5.0;
+
+    const auto clipped_observation = MakeHoverObservation(
+        tracking_base,
+        Eigen::Vector3d(0.0, 0.0, 2.0),
+        tracking_normalization
+    );
+
+    assert(std::abs(clipped_observation[16] - 1.0) < 1e-12);
+
+    // Invalid scales must be rejected.
+    tracking_normalization.target_error_scale = 0.0;
+
+    bool rejected_invalid_scale = false;
+
+    try
+    {
+        ValidateObservationNormalizationParameters(
+            tracking_normalization
+        );
+    }
+    catch (const std::invalid_argument&)
+    {
+        rejected_invalid_scale = true;
+    }
+
+    assert(rejected_invalid_scale);
+
     std::cout << "Task observation tests PASSED\n";
 }

@@ -9,6 +9,7 @@ namespace aerial::rl
     struct ObservationNormalizationParameters
     {
         double position_scale = 10.0;
+        double target_error_scale = 10.0;
         double velocity_scale = 10.0;
         double angular_velocity_scale = 10.0;
         double acceleration_scale = 20.0;

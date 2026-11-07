@@ -53,7 +53,7 @@ namespace aerial::rl
             // already normalized or clipped position.
             double error =
                 (base_observation[axis] - target_position[axis]) /
-                normalization.position_scale;
+                normalization.target_error_scale;
 
             if (normalization.clip)
             {
