@@ -48,6 +48,7 @@ class AerialDroneEnv(gym.Env):
         maximum_target_offset: tuple[float, float, float] = (
             2.0, 2.0, 1.0
         ),
+        target_error_scale: float = 10.0,
     ):
         super().__init__()
 
@@ -72,6 +73,7 @@ class AerialDroneEnv(gym.Env):
             task=task,
             randomize_target=randomize_target,
             maximum_target_offset=maximum_target_offset,
+            target_error_scale=target_error_scale,
         )
 
         observation_size = self.simulator.get_observation_size()

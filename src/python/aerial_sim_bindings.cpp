@@ -44,7 +44,8 @@ namespace
                 aerial::rl::FlightTask::Hover,
             bool randomize_target = false,
             std::array<double, 3> maximum_target_offset =
-                {2.0, 2.0, 1.0}
+                {2.0, 2.0, 1.0},
+            double target_error_scale = 10.0
         )
         {
             aerial::rl::FlightEnvironmentParameters parameters;
@@ -98,6 +99,8 @@ namespace
                     maximum_target_offset[1],
                     maximum_target_offset[2]
                 );
+
+            parameters.observation_normalization.target_error_scale = target_error_scale;
 
             auto& randomization =
                 parameters.initial_state_randomization;
@@ -308,7 +311,8 @@ PYBIND11_MODULE(aerial_sim, module)
                 aerial::rl::ObservationMode,
                 aerial::rl::FlightTask,
                 bool,
-                std::array<double, 3>
+                std::array<double, 3>,
+                double
             >(),
             py::arg("time_step") = 1.0 / 120.0,
             py::arg("maximum_episode_time") = 20.0,
@@ -336,7 +340,8 @@ PYBIND11_MODULE(aerial_sim, module)
                 aerial::rl::FlightTask::Hover,
             py::arg("randomize_target") = false,
             py::arg("maximum_target_offset") =
-                std::array<double, 3>{2.0, 2.0, 1.0}
+                std::array<double, 3>{2.0, 2.0, 1.0},
+            py::arg("target_error_scale") = 10.0
         )
         .def(
             "reset",
